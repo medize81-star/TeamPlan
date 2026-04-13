@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f0f13">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TeamPlan">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>TeamPlan</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #18181f;
+    --surface2: #22222c;
+    --border: #2e2e3a;
+    --text: #e8e8f0;
+    --text-muted: #6b6b80;
+    --accent: #7c6af5;
+    --accent2: #4fd1c5;
+    --danger: #f56565;
+    --success: #48bb78;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* LOADING */
+  #loading {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px; z-index: 999;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* LOGIN */
+  #login-screen {
+    min-height: 100vh;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 30% 20%, #1a1040 0%, #0f0f13 60%);
+  }
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    width: 340px;
+    max-width: 95vw;
+    text-align: center;
+  }
+  .login-logo { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .login-logo span { color: var(--accent); }
+  .login-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 36px; }
+  .pin-label { font-size: 12px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; text-align: left; }
+  .pin-dots { display: flex; gap: 10px; justify-content: center; margin-bottom: 24px; }
+  .pin-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--border); transition: background 0.2s; }
+  .pin-dot.filled { background: var(--accent); }
+  .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .pin-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-family: 'DM Mono', monospace; font-size: 18px;
+    padding: 16px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s;
+  }
+  .pin-btn:hover { background: var(--border); border-color: var(--accent); }
+  .pin-btn:active { transform: scale(0.95); background: var(--accent); color: #fff; }
+  .pin-clear { font-size: 12px; font-family: 'DM Sans', sans-serif; color: var(--text-muted); }
+  .pin-error { font-size: 13px; color: var(--danger); min-height: 20px; margin-top: 8px; }
+
+  /* APP */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-logo { font-size: 18px; font-weight: 600; }
+  .topbar-logo span { color: var(--accent); }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .user-badge {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 12px 6px 6px; font-size: 13px;
+  }
+  .user-dot {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+  }
+  .admin-tag {
+    font-size: 10px; font-weight: 600; background: var(--accent);
+    color: #fff; padding: 2px 7px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .btn {
+    padding: 8px 16px; border-radius: var(--radius-sm); border: none;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text-muted); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .logout-btn {
+    background: transparent; border: none; color: var(--text-muted);
+    font-size: 12px; cursor: pointer; padding: 4px 8px;
+    border-radius: 6px; font-family: 'DM Sans', sans-serif;
+  }
+  .logout-btn:hover { color: var(--danger); }
+
+  /* VIEW BAR */
+  .view-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; gap: 10px; flex-wrap: wrap;
+  }
+  .toggle-group {
+    display: flex; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;
+  }
+  .toggle-btn {
+    padding: 8px 16px; border: none; background: transparent;
+    color: var(--text-muted); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+  }
+  .toggle-btn.active { background: var(--accent); color: #fff; }
+  .nav-arrows { display: flex; gap: 6px; align-items: center; }
+  .nav-label { font-size: 13px; font-weight: 500; min-width: 150px; text-align: center; }
+
+  /* LEGEND */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+  /* CALENDAR */
+  .calendar-wrap { padding: 0 20px 24px; flex: 1; }
+
+  /* MONTH */
+  .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .month-header {
+    font-size: 10px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    text-align: center; padding: 6px 0;
+  }
+  .month-day {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); min-height: 80px;
+    padding: 6px; cursor: pointer; transition: border-color 0.15s;
+  }
+  .month-day:hover { border-color: var(--accent); }
+  .month-day.other-month { opacity: 0.3; }
+  .month-day.today { border-color: var(--accent2); }
+  .day-num { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 3px; }
+  .month-day.today .day-num { color: var(--accent2); }
+  .day-chips { display: flex; flex-direction: column; gap: 2px; }
+  .day-chip {
+    font-size: 9px; padding: 2px 5px; border-radius: 3px;
+    color: #fff; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+  }
+
+  /* WEEK */
+  .week-grid { display: grid; grid-template-columns: 44px repeat(7, 1fr); gap: 3px; }
+  .week-day-header { text-align: center; padding: 8px 2px; font-size: 11px; }
+  .week-day-header .wd-name { color: var(--text-muted); font-size: 10px; text-transform: uppercase; }
+  .week-day-header .wd-num { font-size: 16px; font-weight: 600; margin-top: 2px; }
+  .week-day-header.today .wd-num { color: var(--accent2); }
+  .time-col { display: flex; flex-direction: column; }
+  .time-slot { height: 56px; display: flex; align-items: flex-start; padding-top: 3px; }
+  .time-label { font-size: 9px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+  .week-col { position: relative; border-left: 1px solid var(--border); }
+  .week-hour-line { height: 56px; border-bottom: 1px solid #1e1e28; }
+  .week-event {
+    position: absolute; left: 2px; right: 2px; border-radius: 5px;
+    padding: 3px 5px; font-size: 10px; color: #fff; font-weight: 500;
+    overflow: hidden; cursor: pointer; z-index: 10; transition: opacity 0.15s;
+  }
+  .week-event:hover { opacity: 0.8; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 200;
+    align-items: flex-end; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px 20px 0 0; padding: 24px 24px 36px;
+    width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+  }
+  @media (min-width: 600px) {
+    .modal-overlay { align-items: center; }
+    .modal { border-radius: 16px; }
+  }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+  .form-group { margin-bottom: 14px; }
+  .form-label {
+    display: block; font-size: 11px; font-weight: 500; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 12px;
+    outline: none; transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-textarea { resize: vertical; min-height: 70px; }
+  .form-select option { background: var(--surface2); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .person-checkboxes { display: flex; flex-wrap: wrap; gap: 7px; }
+  .person-check {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 12px; cursor: pointer;
+    transition: all 0.15s; font-size: 13px; user-select: none;
+  }
+  .person-check.selected { border-color: var(--accent); background: rgba(124,106,245,0.15); }
+  .person-color-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+
+  /* DETAIL */
+  .detail-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+  .detail-title { font-size: 19px; font-weight: 600; }
+  .detail-time { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+  .detail-section { margin-bottom: 14px; }
+  .detail-section-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+  .detail-section-value { font-size: 14px; line-height: 1.6; }
+  .assignee-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .assignee-pill {
+    display: flex; align-items: center; gap: 6px; font-size: 12px;
+    padding: 4px 10px; border-radius: 20px;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+
+  /* ADMIN */
+  .admin-panel { padding: 0 20px 24px; }
+  .panel-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; margin-top: 8px; }
+  .person-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 20px; }
+  .person-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 11px 14px;
+  }
+  .person-row-left { display: flex; align-items: center; gap: 10px; }
+  .person-color-swatch { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; }
+  .person-name { font-size: 14px; font-weight: 500; }
+  .person-pin { font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+
+  .color-opt { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: border-color .15s; flex-shrink: 0; }
+  .color-opt.selected { border-color: #fff; }
+
+  /* ONLINE INDICATOR */
+  .online-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); display: inline-block; margin-left: 4px; }
+  .offline-dot { background: var(--danger); }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 10px 20px; font-size: 13px;
+    z-index: 500; opacity: 0; transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:var(--text-muted)">Verbinde...</div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">Team<span>Plan</span></div>
+    <div class="login-sub">Gib deinen PIN ein</div>
+    <div class="pin-label">PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-grid">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn pin-clear" onclick="pinClear()">↩</button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn" onclick="pinDelete()">⌫</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">Team<span>Plan</span></div>
+    <div class="topbar-right">
+      <div class="user-badge">
+        <div class="user-dot" id="user-dot">?</div>
+        <span id="user-name-label">—</span>
+        <span class="admin-tag" id="admin-tag" style="display:none">Admin</span>
+      </div>
+      <button class="logout-btn" onclick="logout()">✕</button>
+    </div>
+  </div>
+
+  <div class="view-bar">
+    <div class="toggle-group">
+      <button class="toggle-btn active" id="btn-month" onclick="setView('month')">Monat</button>
+      <button class="toggle-btn" id="btn-week" onclick="setView('week')">Woche</button>
+      <button class="toggle-btn" id="btn-admin" onclick="setView('admin')" style="display:none">⚙</button>
+    </div>
+    <div class="nav-arrows" id="nav-arrows">
+      <button class="btn btn-ghost btn-sm" onclick="navPrev()">‹</button>
+      <span class="nav-label" id="nav-label">—</span>
+      <button class="btn btn-ghost btn-sm" onclick="navNext()">›</button>
+    </div>
+    <button class="btn btn-primary btn-sm" id="add-btn" style="display:none" onclick="openAddModal()">+ Auftrag</button>
+  </div>
+
+  <div class="legend" id="legend"></div>
+  <div class="calendar-wrap" id="calendar-wrap"></div>
+  <div class="admin-panel" id="admin-panel" style="display:none"></div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Neuer Auftrag</div>
+    <div class="form-group">
+      <label class="form-label">Titel</label>
+      <input class="form-input" id="f-title" placeholder="z.B. Baustelle Hauptstraße">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Datum</label>
+        <input class="form-input" id="f-date" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Uhrzeit</label>
+        <input class="form-input" id="f-time" type="time">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Adresse</label>
+      <input class="form-input" id="f-address" placeholder="Straße, Ort">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Hinweise / Aufgaben</label>
+      <textarea class="form-textarea" id="f-notes" placeholder="Was ist zu tun?"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Personen zuweisen</label>
+      <div class="person-checkboxes" id="person-checkboxes"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('add-modal')">Abbrechen</button>
+      <button class="btn btn-danger btn-sm" id="delete-btn" style="display:none" onclick="deleteOrder()">Löschen</button>
+      <button class="btn btn-primary" onclick="saveOrder()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="detail-header">
+      <div>
+        <div class="detail-title" id="d-title">—</div>
+        <div class="detail-time" id="d-time">—</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('detail-modal')">✕</button>
+    </div>
+    <div class="detail-section" id="d-address-sec">
+      <div class="detail-section-label">📍 Adresse</div>
+      <div class="detail-section-value" id="d-address">—</div>
+    </div>
+    <div class="detail-section" id="d-notes-sec">
+      <div class="detail-section-label">📋 Hinweise</div>
+      <div class="detail-section-value" id="d-notes">—</div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-label">👤 Zugewiesen an</div>
+      <div class="assignee-pills" id="d-assignees"></div>
+    </div>
+    <div class="modal-actions" id="d-admin-actions" style="display:none">
+      <button class="btn btn-ghost" onclick="closeModal('detail-modal')">Schließen</button>
+      <button class="btn btn-primary btn-sm" onclick="editFromDetail()">Bearbeiten</button>
+    </div>
+    <div class="modal-actions" id="d-user-actions" style="display:none">
+      <button class="btn btn-primary" onclick="closeModal('detail-modal')">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, push, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBQhF7MnSAJHk4C0f8mzNDHoXOoMh8pNtE",
+  authDomain: "teamplan-f6719.firebaseapp.com",
+  databaseURL: "https://teamplan-f6719-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "teamplan-f6719",
+  storageBucket: "teamplan-f6719.firebasestorage.app",
+  messagingSenderId: "119670665952",
+  appId: "1:119670665952:web:9d1827931c2ed4969e9685"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
+
+// ── COLORS ──
+const COLORS = ['#7c6af5','#4fd1c5','#f6ad55','#fc8181','#68d391','#76e4f7','#b794f4','#f687b3','#fbd38d','#9ae6b4'];
+
+// ── STATE ──
+let persons = [];
+let orders = [];
+let currentUser = null;
+let currentView = 'month';
+let currentDate = new Date();
+let editingOrderId = null;
+let selectedPersons = [];
+let selectedColor = COLORS[5];
+
+// ── INIT ──
+async function init() {
+  // Load persons from Firebase
+  const personsSnap = await get(ref(db, 'persons'));
+  if (!personsSnap.exists()) {
+    // First time setup — create default admin
+    const defaultPersons = {
+      'p1': { name: 'Admin', pin: '0000', isAdmin: true, color: COLORS[0] }
+    };
+    await set(ref(db, 'persons'), defaultPersons);
+  }
+
+  // Listen to realtime changes
+  onValue(ref(db, 'persons'), snap => {
+    persons = [];
+    if (snap.exists()) {
+      const data = snap.val();
+      Object.keys(data).forEach(k => persons.push({ id: k, ...data[k] }));
+    }
+    if (currentUser) renderAll();
+  });
+
+  onValue(ref(db, 'orders'), snap => {
+    orders = [];
+    if (snap.exists()) {
+      const data = snap.val();
+      Object.keys(data).forEach(k => orders.push({ id: k, ...data[k] }));
+    }
+    if (currentUser) renderAll();
+  });
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+init().catch(err => {
+  console.error(err);
+  document.getElementById('loading').innerHTML = '<div style="color:#f56565;text-align:center;padding:20px">Verbindung fehlgeschlagen.<br>Bitte Seite neu laden.</div>';
+});
+
+// ── PIN ──
+let pinBuffer = '';
+window.pinPress = d => {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += d;
+  updateDots();
+  if (pinBuffer.length === 4) setTimeout(tryLogin, 200);
+};
+window.pinDelete = () => { pinBuffer = pinBuffer.slice(0,-1); updateDots(); };
+window.pinClear  = () => { pinBuffer = ''; updateDots(); };
+
+function updateDots() {
+  for(let i=0;i<4;i++)
+    document.getElementById('d'+i).classList.toggle('filled', i < pinBuffer.length);
+}
+
+function tryLogin() {
+  const user = persons.find(p => p.pin === pinBuffer);
+  if (user) {
+    currentUser = user;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    setupUser();
+    renderAll();
+  } else {
+    document.getElementById('pin-error').textContent = 'Falscher PIN – bitte nochmal';
+    pinBuffer = ''; updateDots();
+    setTimeout(() => document.getElementById('pin-error').textContent = '', 2000);
+  }
+}
+
+window.logout = () => {
+  currentUser = null; pinBuffer = ''; updateDots();
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+};
+
+function setupUser() {
+  const dot = document.getElementById('user-dot');
+  dot.textContent = currentUser.name[0].toUpperCase();
+  dot.style.background = currentUser.color;
+  document.getElementById('user-name-label').textContent = currentUser.name;
+  document.getElementById('admin-tag').style.display = currentUser.isAdmin ? 'inline' : 'none';
+  document.getElementById('add-btn').style.display = currentUser.isAdmin ? 'inline-block' : 'none';
+  document.getElementById('btn-admin').style.display = currentUser.isAdmin ? 'inline-block' : 'none';
+}
+
+// ── VIEW ──
+window.setView = v => {
+  currentView = v;
+  ['month','week','admin'].forEach(x => {
+    const el = document.getElementById('btn-'+x);
+    if (el) el.classList.toggle('active', x===v);
+  });
+  document.getElementById('nav-arrows').style.display = v==='admin' ? 'none' : 'flex';
+  document.getElementById('calendar-wrap').style.display = v==='admin' ? 'none' : 'block';
+  document.getElementById('admin-panel').style.display = v==='admin' ? 'block' : 'none';
+  document.getElementById('legend').style.display = v==='admin' ? 'none' : 'flex';
+  renderAll();
+};
+
+function renderAll() {
+  renderLegend();
+  if (currentView === 'month') renderMonth();
+  else if (currentView === 'week') renderWeek();
+  else renderAdmin();
+}
+
+// ── LEGEND ──
+function renderLegend() {
+  const leg = document.getElementById('legend');
+  const list = currentUser.isAdmin ? persons : persons.filter(p=>p.id===currentUser.id);
+  leg.innerHTML = list.map(p =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${p.color}"></div>${p.name}</div>`
+  ).join('');
+}
+
+// ── MONTH ──
+function renderMonth() {
+  const y = currentDate.getFullYear(), m = currentDate.getMonth();
+  document.getElementById('nav-label').textContent =
+    new Date(y,m,1).toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+  const wrap = document.getElementById('calendar-wrap');
+  const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  let html = '<div class="month-grid">';
+  dayNames.forEach(d => html += `<div class="month-header">${d}</div>`);
+  const first = new Date(y,m,1);
+  let dow = (first.getDay()+6)%7;
+  const dim = new Date(y,m+1,0).getDate();
+  const today = new Date();
+  for(let i=0;i<dow;i++) html += renderMonthDay(new Date(y,m,1-dow+i), true);
+  for(let d=1;d<=dim;d++) html += renderMonthDay(new Date(y,m,d), false, new Date(y,m,d).toDateString()===today.toDateString());
+  const total = dow+dim; const rem = total%7===0?0:7-(total%7);
+  for(let i=1;i<=rem;i++) html += renderMonthDay(new Date(y,m+1,i), true);
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+function renderMonthDay(dt, other, isToday=false) {
+  const ds = dt.toISOString().slice(0,10);
+  const dayOrders = getOrdersForDay(ds);
+  let chips = dayOrders.slice(0,3).map(o =>
+    `<div class="day-chip" style="background:${getOrderColor(o)}" onclick="event.stopPropagation();openDetail('${o.id}')">${o.title}</div>`
+  ).join('');
+  if (dayOrders.length>3) chips += `<div style="font-size:9px;color:var(--text-muted);padding:1px 4px">+${dayOrders.length-3}</div>`;
+  const click = currentUser.isAdmin ? `onclick="openAddOnDay('${ds}')"` : '';
+  return `<div class="month-day${other?' other-month':''}${isToday?' today':''}" ${click}>
+    <div class="day-num">${dt.getDate()}</div>
+    <div class="day-chips">${chips}</div>
+  </div>`;
+}
+
+// ── WEEK ──
+function renderWeek() {
+  const mon = getMonday(currentDate);
+  const sun = new Date(mon); sun.setDate(sun.getDate()+6);
+  document.getElementById('nav-label').textContent =
+    mon.toLocaleDateString('de-DE',{day:'2-digit',month:'short'}) + ' – ' +
+    sun.toLocaleDateString('de-DE',{day:'2-digit',month:'short'});
+  const today = new Date();
+  const days = Array.from({length:7},(_,i)=>{ const d=new Date(mon); d.setDate(d.getDate()+i); return d; });
+  const names = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  let html = '<div class="week-grid"><div></div>';
+  days.forEach((d,i) => {
+    const isToday = d.toDateString()===today.toDateString();
+    html += `<div class="week-day-header${isToday?' today':''}"><div class="wd-name">${names[i]}</div><div class="wd-num">${d.getDate()}</div></div>`;
+  });
+  html += '<div class="time-col">';
+  for(let h=6;h<22;h++) html += `<div class="time-slot"><span class="time-label">${String(h).padStart(2,'0')}</span></div>`;
+  html += '</div>';
+  days.forEach(d => {
+    const ds = d.toISOString().slice(0,10);
+    const dayOrders = getOrdersForDay(ds);
+    const click = currentUser.isAdmin ? `onclick="openAddOnDay('${ds}')"` : '';
+    html += `<div class="week-col" ${click}>`;
+    for(let h=6;h<22;h++) html += '<div class="week-hour-line"></div>';
+    dayOrders.forEach(o => {
+      const [hh,mm] = (o.time||'08:00').split(':').map(Number);
+      if(hh<6||hh>=22) return;
+      const top = (hh-6)*56 + (mm/60)*56;
+      html += `<div class="week-event" style="top:${top}px;height:50px;background:${getOrderColor(o)}" onclick="event.stopPropagation();openDetail('${o.id}')"><div>${o.time||''} ${o.title}</div></div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('calendar-wrap').innerHTML = html;
+}
+
+// ── ADMIN ──
+function renderAdmin() {
+  const panel = document.getElementById('admin-panel');
+  let html = `<div class="panel-title">Team-Mitglieder</div><div class="person-list">`;
+  persons.forEach(p => {
+    html += `<div class="person-row">
+      <div class="person-row-left">
+        <div class="person-color-swatch" style="background:${p.color}"></div>
+        <div>
+          <div class="person-name">${p.name}${p.isAdmin?' <span style="font-size:10px;color:var(--accent)">(Admin)</span>':''}</div>
+          <div class="person-pin">PIN: ${p.pin}</div>
+        </div>
+      </div>
+      ${!p.isAdmin?`<button class="btn btn-ghost btn-sm" onclick="removePerson('${p.id}')">Entfernen</button>`:''}
+    </div>`;
+  });
+  html += `</div>
+  <div class="panel-title">Neue Person hinzufügen</div>
+  <div class="form-row" style="max-width:480px;margin-bottom:10px">
+    <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="new-name" placeholder="Vorname Nachname"></div>
+    <div class="form-group"><label class="form-label">PIN (4-stellig)</label><input class="form-input" id="new-pin" placeholder="z.B. 5678" maxlength="4" inputmode="numeric"></div>
+  </div>
+  <div class="form-group" style="max-width:480px;margin-bottom:14px">
+    <label class="form-label">Farbe</label>
+    <div style="display:flex;gap:7px;flex-wrap:wrap" id="color-picker">
+      ${COLORS.map(c=>`<div class="color-opt" data-c="${c}" onclick="selectColor(this)" style="background:${c}"></div>`).join('')}
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="addPerson()">Person hinzufügen</button>`;
+  panel.innerHTML = html;
+  // mark first color
+  setTimeout(()=>{ const first = panel.querySelector('.color-opt'); if(first) first.classList.add('selected'); },50);
+}
+
+window.selectColor = el => {
+  document.querySelectorAll('.color-opt').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedColor = el.dataset.c;
+};
+
+window.addPerson = async () => {
+  const name = document.getElementById('new-name').value.trim();
+  const pin  = document.getElementById('new-pin').value.trim();
+  if (!name || pin.length!==4) { showToast('Bitte Name und 4-stelligen PIN eingeben'); return; }
+  if (persons.find(p=>p.pin===pin)) { showToast('Dieser PIN ist bereits vergeben'); return; }
+  const newRef = push(ref(db, 'persons'));
+  await set(newRef, { name, pin, isAdmin: false, color: selectedColor });
+  showToast(`${name} wurde hinzugefügt ✓`);
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-pin').value = '';
+};
+
+window.removePerson = async id => {
+  if (!confirm('Person wirklich entfernen?')) return;
+  await remove(ref(db, 'persons/'+id));
+  // Remove from orders
+  for (const o of orders) {
+    if (o.persons && o.persons.includes(id)) {
+      const updated = o.persons.filter(pid=>pid!==id);
+      await set(ref(db, 'orders/'+o.id+'/persons'), updated);
+    }
+  }
+  showToast('Person entfernt');
+};
+
+// ── HELPERS ──
+function getOrdersForDay(ds) {
+  return orders.filter(o => {
+    if (o.date !== ds) return false;
+    if (currentUser.isAdmin) return true;
+    return o.persons && o.persons.includes(currentUser.id);
+  });
+}
+
+function getOrderColor(o) {
+  if (!o.persons || o.persons.length === 0) return '#555';
+  const p = persons.find(x=>x.id===o.persons[0]);
+  return p ? p.color : '#555';
+}
+
+function getMonday(d) {
+  const dt = new Date(d);
+  dt.setDate(dt.getDate() - (dt.getDay()+6)%7);
+  return dt;
+}
+
+// ── ADD MODAL ──
+window.openAddModal = (date='', orderId=null) => {
+  editingOrderId = orderId;
+  selectedPersons = [];
+  document.getElementById('modal-title').textContent = orderId ? 'Auftrag bearbeiten' : 'Neuer Auftrag';
+  document.getElementById('delete-btn').style.display = orderId ? 'inline-block' : 'none';
+  if (orderId) {
+    const o = orders.find(x=>x.id===orderId);
+    document.getElementById('f-title').value = o.title;
+    document.getElementById('f-date').value = o.date;
+    document.getElementById('f-time').value = o.time||'';
+    document.getElementById('f-address').value = o.address||'';
+    document.getElementById('f-notes').value = o.notes||'';
+    selectedPersons = o.persons ? [...o.persons] : [];
+  } else {
+    ['f-title','f-address','f-notes'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f-date').value = date;
+    document.getElementById('f-time').value = '';
+  }
+  renderPersonCheckboxes();
+  document.getElementById('add-modal').classList.add('open');
+};
+
+window.openAddOnDay = ds => window.openAddModal(ds);
+
+function renderPersonCheckboxes() {
+  const wrap = document.getElementById('person-checkboxes');
+  wrap.innerHTML = '';
+  persons.filter(p=>!p.isAdmin).forEach(p => {
+    const sel = selectedPersons.includes(p.id);
+    const div = document.createElement('div');
+    div.className = 'person-check' + (sel?' selected':'');
+    div.innerHTML = `<div class="person-color-dot" style="background:${p.color}"></div>${p.name}`;
+    div.onclick = () => {
+      if (selectedPersons.includes(p.id)) selectedPersons = selectedPersons.filter(x=>x!==p.id);
+      else selectedPersons.push(p.id);
+      renderPersonCheckboxes();
+    };
+    wrap.appendChild(div);
+  });
+}
+
+window.saveOrder = async () => {
+  const title = document.getElementById('f-title').value.trim();
+  const date  = document.getElementById('f-date').value;
+  if (!title || !date) { showToast('Bitte Titel und Datum eingeben'); return; }
+  const order = {
+    title, date,
+    time: document.getElementById('f-time').value,
+    address: document.getElementById('f-address').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+    persons: [...selectedPersons]
+  };
+  if (editingOrderId) {
+    await set(ref(db, 'orders/'+editingOrderId), { ...order, id: editingOrderId });
+  } else {
+    const newRef = push(ref(db, 'orders'));
+    await set(newRef, order);
+  }
+  closeModal('add-modal');
+  showToast('Auftrag gespeichert ✓');
+};
+
+window.deleteOrder = async () => {
+  if (!confirm('Auftrag wirklich löschen?')) return;
+  await remove(ref(db, 'orders/'+editingOrderId));
+  closeModal('add-modal');
+  showToast('Auftrag gelöscht');
+};
+
+// ── DETAIL ──
+window.openDetail = id => {
+  const o = orders.find(x=>x.id===id);
+  if (!o) return;
+  document.getElementById('d-title').textContent = o.title;
+  document.getElementById('d-time').textContent = o.date + (o.time ? ' · ' + o.time + ' Uhr' : '');
+  document.getElementById('d-address').textContent = o.address||'—';
+  document.getElementById('d-address-sec').style.display = o.address ? 'block' : 'none';
+  document.getElementById('d-notes').textContent = o.notes||'—';
+  document.getElementById('d-notes-sec').style.display = o.notes ? 'block' : 'none';
+  const pills = document.getElementById('d-assignees');
+  pills.innerHTML = '';
+  if (!o.persons||o.persons.length===0) {
+    pills.innerHTML = '<span style="color:var(--text-muted);font-size:13px">Niemand zugewiesen</span>';
+  } else {
+    o.persons.forEach(pid => {
+      const p = persons.find(x=>x.id===pid);
+      if (!p) return;
+      pills.innerHTML += `<div class="assignee-pill"><div class="person-color-dot" style="background:${p.color}"></div>${p.name}</div>`;
+    });
+  }
+  document.getElementById('d-admin-actions').style.display = currentUser.isAdmin ? 'flex' : 'none';
+  document.getElementById('d-user-actions').style.display = currentUser.isAdmin ? 'none' : 'flex';
+  document.getElementById('detail-modal').dataset.orderId = id;
+  document.getElementById('detail-modal').classList.add('open');
+};
+
+window.editFromDetail = () => {
+  const id = document.getElementById('detail-modal').dataset.orderId;
+  closeModal('detail-modal');
+  window.openAddModal('', id);
+};
+
+// ── MODALS ──
+window.closeModal = id => document.getElementById(id).classList.remove('open');
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if(e.target===el) el.classList.remove('open'); });
+});
+
+// ── NAV ──
+window.navPrev = () => {
+  if (currentView==='month') currentDate.setMonth(currentDate.getMonth()-1);
+  else currentDate.setDate(currentDate.getDate()-7);
+  renderAll();
+};
+window.navNext = () => {
+  if (currentView==='month') currentDate.setMonth(currentDate.getMonth()+1);
+  else currentDate.setDate(currentDate.getDate()+7);
+  renderAll();
+};
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
