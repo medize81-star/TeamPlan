@@ -8,15 +8,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="pG Plan">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="./manifest.json">
 <title>pG Plan</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0f0f13;--surface:#18181f;--surface2:#22222c;--border:#2e2e3a;--text:#e8e8f0;--muted:#6b6b80;--accent:#7c6af5;--teal:#4fd1c5;--danger:#f56565;--rs:8px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-
-/* LOADING */
 #loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:999}
 .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -27,24 +25,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .login-logo{margin-bottom:6px}
 .login-logo img{height:46px;filter:invert(1)}
 .login-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+.step-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
 
-/* STEP 1: Name auswählen */
+/* Name eingeben */
 #step-name{display:block}
-.step-title{font-size:14px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
-.name-list{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto}
-.name-btn{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;cursor:pointer;transition:all .15s;text-align:left;width:100%;font-family:'DM Sans',sans-serif;color:var(--text);font-size:15px;font-weight:500}
-.name-btn:hover{border-color:var(--accent);background:rgba(124,106,245,.1)}
-.name-btn:active{transform:scale(.98)}
-.name-btn-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.finput-lg{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;padding:13px 14px;outline:none;transition:border-color .15s;margin-bottom:12px;text-align:center}
+.finput-lg:focus{border-color:var(--accent)}
+.finput-lg::placeholder{color:var(--muted)}
+.btn-next{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--rs);padding:13px;font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.btn-next:hover{opacity:.85}
+.btn-next:active{transform:scale(.98)}
 
-/* STEP 2: PIN eingeben */
+/* PIN eingeben */
 #step-pin{display:none}
 .back-btn{display:flex;align-items:center;gap:6px;background:transparent;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:14px;padding:0}
 .back-btn:hover{color:var(--text)}
-.selected-user{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:20px}
-.selected-user-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
-.selected-user-name{font-size:15px;font-weight:600}
-.selected-user-hint{font-size:11px;color:var(--muted);margin-top:1px}
+.user-greeting{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:15px;font-weight:600;text-align:left}
+.user-greeting span{color:var(--muted);font-size:12px;font-weight:400;display:block;margin-bottom:2px}
 .pin-dots{display:flex;gap:12px;justify-content:center;margin-bottom:20px}
 .pin-dot{width:14px;height:14px;border-radius:50%;background:var(--border);transition:background .2s}
 .pin-dot.filled{background:var(--accent)}
@@ -59,7 +56,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .topbar-logo img{height:26px;filter:invert(1)}
 .topbar-right{display:flex;align-items:center;gap:8px}
 .user-badge{display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px 5px 5px;font-size:13px}
-.user-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.udot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
 .admin-tag{font-size:10px;font-weight:600;background:var(--accent);color:#fff;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
 .logout-btn{background:transparent;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:5px 8px;border-radius:6px}
 .logout-btn:hover{color:var(--danger)}
@@ -78,8 +75,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
 .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .cal-wrap{padding:0 18px 32px;flex:1}
-
-/* MONTH */
 .month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
 .mh{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;text-align:center;padding:6px 0}
 .mday{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);min-height:76px;padding:5px;cursor:pointer;transition:border-color .15s}
@@ -88,8 +83,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mday.today .dnum{color:var(--teal)}
 .dchips{display:flex;flex-direction:column;gap:2px}
 .chip{font-size:9px;padding:2px 4px;border-radius:3px;color:#fff;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
-
-/* WEEK */
 .week-grid{display:grid;grid-template-columns:38px repeat(7,1fr);gap:3px}
 .wdh{text-align:center;padding:6px 2px}
 .wdh .wdn{color:var(--muted);font-size:10px;text-transform:uppercase}
@@ -102,8 +95,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .whl{height:54px;border-bottom:1px solid #1e1e28}
 .wev{position:absolute;left:2px;right:2px;border-radius:5px;padding:3px 5px;font-size:10px;color:#fff;font-weight:500;overflow:hidden;cursor:pointer;z-index:10}
 .wev:hover{opacity:.8}
-
-/* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
 .modal-overlay.open{display:flex}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px 22px 38px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
@@ -158,21 +149,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="login-logo"><img id="login-logo" alt="pG"></div>
     <div class="login-sub">Team-Kalender</div>
 
-    <!-- SCHRITT 1: Name wählen -->
+    <!-- SCHRITT 1: Name eingeben -->
     <div id="step-name">
-      <div class="step-title">Wer bist du?</div>
-      <div class="name-list" id="name-list"></div>
+      <div class="step-title">Dein Name</div>
+      <input class="finput-lg" id="name-input" type="text" placeholder="Vor- und Nachname" autocomplete="name" autocorrect="off" spellcheck="false">
+      <button class="btn-next" onclick="goToPin()">Weiter →</button>
+      <div class="pin-error" id="name-error"></div>
     </div>
 
     <!-- SCHRITT 2: PIN eingeben -->
     <div id="step-pin">
       <button class="back-btn" onclick="goBackToName()">← Zurück</button>
-      <div class="selected-user" id="selected-user-box">
-        <div class="selected-user-dot" id="sel-dot">?</div>
-        <div>
-          <div class="selected-user-name" id="sel-name">—</div>
-          <div class="selected-user-hint">PIN eingeben</div>
-        </div>
+      <div class="user-greeting" id="user-greeting">
+        <span>Willkommen</span>
+        <span id="greeting-name">—</span>
       </div>
       <div class="pin-dots">
         <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
@@ -200,14 +190,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- APP -->
 <div id="app">
   <div class="topbar">
-    <div><img id="app-logo" alt="pG" style="height:26px;filter:invert(1)"></div>
+    <div class="topbar-logo"><img id="app-logo" alt="pG"></div>
     <div class="topbar-right">
       <div class="user-badge">
-        <div class="user-dot" id="user-dot">?</div>
+        <div class="udot" id="user-dot">?</div>
         <span id="user-name-label">—</span>
         <span class="admin-tag" id="admin-tag" style="display:none">Admin</span>
       </div>
-      <button class="logout-btn" onclick="logout()" title="Abmelden">✕</button>
+      <button class="logout-btn" onclick="logout()">✕</button>
     </div>
   </div>
   <div class="view-bar">
@@ -288,8 +278,7 @@ document.getElementById('login-logo').src='data:image/png;base64,'+LOGO;
 document.getElementById('app-logo').src='data:image/png;base64,'+LOGO;
 
 let persons=[],orders=[],me=null,view='month',curDate=new Date();
-let editId=null,selPersons=[],selColor=COLORS[5],detailOrder=null;
-let pinBuffer='',pendingUser=null;
+let editId=null,selPersons=[],selColor=COLORS[5],detailOrder=null,pinBuffer='';
 
 // SESSION
 const saveSession=u=>localStorage.setItem('pg_s',JSON.stringify({id:u.id,pin:u.pin}));
@@ -322,16 +311,7 @@ function tryAutoLogin(){
 function showLoginScreen(){
   document.getElementById('login-screen').style.display='flex';
   showStep('name');
-  renderNameList();
-}
-
-function renderNameList(){
-  const list=document.getElementById('name-list');
-  list.innerHTML=persons.map(p=>`
-    <button class="name-btn" onclick="selectUser('${p.id}')">
-      <div class="name-btn-dot" style="background:${p.color}">${p.name[0].toUpperCase()}</div>
-      <span>${p.name}</span>
-    </button>`).join('');
+  document.getElementById('name-input').value='';
 }
 
 function showStep(step){
@@ -339,18 +319,26 @@ function showStep(step){
   document.getElementById('step-pin').style.display=step==='pin'?'block':'none';
   pinBuffer=''; updateDots();
   document.getElementById('pin-error').textContent='';
+  document.getElementById('name-error').textContent='';
 }
 
-window.selectUser=id=>{
-  pendingUser=persons.find(p=>p.id===id);
-  if(!pendingUser) return;
-  document.getElementById('sel-dot').textContent=pendingUser.name[0].toUpperCase();
-  document.getElementById('sel-dot').style.background=pendingUser.color;
-  document.getElementById('sel-name').textContent=pendingUser.name;
+// Name → weiter zu PIN
+window.goToPin=()=>{
+  const name=document.getElementById('name-input').value.trim();
+  if(!name){document.getElementById('name-error').textContent='Bitte deinen Namen eingeben';return;}
+  // Suche Person (Groß/Kleinschreibung egal)
+  const found=persons.find(p=>p.name.toLowerCase()===name.toLowerCase());
+  if(!found){document.getElementById('name-error').textContent='Name nicht gefunden – bitte genau wie registriert eingeben';return;}
+  document.getElementById('greeting-name').textContent=found.name;
+  document.getElementById('greeting-name').style.color=found.color;
+  document.getElementById('step-pin').dataset.uid=found.id;
   showStep('pin');
 };
 
-window.goBackToName=()=>{ pendingUser=null; showStep('name'); };
+// Enter-Taste im Namensfeld
+document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')window.goToPin();});
+
+window.goBackToName=()=>showStep('name');
 
 // PIN
 window.pinPress=d=>{if(pinBuffer.length>=4)return;pinBuffer+=d;updateDots();if(pinBuffer.length===4)setTimeout(tryLogin,180);};
@@ -359,9 +347,11 @@ window.pinClear=()=>{pinBuffer='';updateDots();};
 function updateDots(){for(let i=0;i<4;i++)document.getElementById('d'+i).classList.toggle('filled',i<pinBuffer.length);}
 
 function tryLogin(){
-  if(!pendingUser) return;
-  if(pinBuffer===pendingUser.pin){
-    loginAs(pendingUser);
+  const uid=document.getElementById('step-pin').dataset.uid;
+  const user=persons.find(p=>p.id===uid);
+  if(!user) return;
+  if(pinBuffer===user.pin){
+    loginAs(user);
   } else {
     const el=document.getElementById('pin-error');
     el.textContent='Falscher PIN – nochmal versuchen';
@@ -378,7 +368,7 @@ function loginAs(user){
 }
 
 window.logout=()=>{
-  me=null; clearSession(); pendingUser=null;
+  me=null; clearSession();
   document.getElementById('app').style.display='none';
   showLoginScreen();
 };
@@ -405,7 +395,6 @@ window.setView=v=>{
 };
 
 function renderAll(){renderLegend();if(view==='month')renderMonth();else if(view==='week')renderWeek();else renderAdmin();}
-
 function renderLegend(){
   const list=me.isAdmin?persons:persons.filter(p=>p.id===me.id);
   document.getElementById('legend').innerHTML=list.map(p=>`<div class="legend-item"><div class="legend-dot" style="background:${p.color}"></div>${p.name}</div>`).join('');
@@ -422,7 +411,6 @@ function renderMonth(){
   for(let i=1;i<=rem;i++)h+=mday(new Date(y,m+1,i),true);
   document.getElementById('cal-wrap').innerHTML=h+'</div>';
 }
-
 function mday(dt,other,isToday=false){
   const ds=dt.toISOString().slice(0,10),ords=dayOrders(ds);
   let chips=ords.slice(0,3).map(o=>`<div class="chip" style="background:${orderColor(o)}" onclick="event.stopPropagation();openDetail('${o.id}')">${o.title}</div>`).join('');
@@ -500,7 +488,6 @@ window.openAddModal=(date='',oid=null)=>{
   renderPchecks();document.getElementById('add-modal').classList.add('open');
 };
 window.openAddOnDay=ds=>window.openAddModal(ds);
-
 function renderPchecks(){
   const w=document.getElementById('pchecks');w.innerHTML='';
   persons.filter(p=>!p.isAdmin).forEach(p=>{
@@ -511,7 +498,6 @@ function renderPchecks(){
     w.appendChild(d);
   });
 }
-
 window.saveOrder=async()=>{
   const title=document.getElementById('f-title').value.trim(),date=document.getElementById('f-date').value;
   if(!title||!date){showToast('Bitte Titel und Datum eingeben');return;}
@@ -565,7 +551,7 @@ document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('cli
 window.navPrev=()=>{if(view==='month')curDate.setMonth(curDate.getMonth()-1);else curDate.setDate(curDate.getDate()-7);renderAll();};
 window.navNext=()=>{if(view==='month')curDate.setMonth(curDate.getMonth()+1);else curDate.setDate(curDate.getDate()+7);renderAll();};
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
-if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
 </body>
 </html>
