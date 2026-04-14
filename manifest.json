@@ -1,7 +1,7 @@
 {
-  "name": "TeamPlan",
-  "short_name": "TeamPlan",
-  "description": "Team-Kalender & Auftragsplanung",
+  "name": "pG Plan",
+  "short_name": "pG Plan",
+  "description": "pG Team-Kalender & Auftragsplanung",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#0f0f13",
