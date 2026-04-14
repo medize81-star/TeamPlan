@@ -511,10 +511,9 @@ function renderWeek(){
   h+='<div class="timecol">';
   for(let hr=START_H;hr<22;hr++)h+=`<div class="tslot"><span class="tlabel">${String(hr).padStart(2,'0')}</span></div>`;
   h+='</div>';
-  days.forEach((d,di)=>{
+  days.forEach((d)=>{
     const ds=d.toISOString().slice(0,10),ords=dayOrders(ds);
-    const cl=canEdit()?`onclick="addOnWeekDay(event,'${ds}')"`:'';
-    h+=`<div class="wcol" data-date="${ds}" ${cl}>`;
+    h+=`<div class="wcol" data-date="${ds}">`;
     for(let hr=START_H;hr<22;hr++)h+='<div class="whl"></div>';
     ords.forEach(o=>{
       const sStr=o.timeStart||o.time||'08:00', eStr=o.timeEnd||null;
@@ -522,57 +521,100 @@ function renderWeek(){
       if(hs<START_H||hs>=22)return;
       const top=(hs-START_H)*HOUR_H+(ms/60)*HOUR_H;
       let height=HOUR_H;
-      if(eStr){const[he,me2]=eStr.split(':').map(Number);const dur=(he*60+me2)-(hs*60+ms);if(dur>0)height=Math.max(28,(dur/60)*HOUR_H);}
-      const canDrag=canEdit();
-      h+=`<div class="wev" id="wev-${o.id}" data-id="${o.id}" style="top:${top}px;height:${height}px;background:${getOColor(o)}" 
-          ${canDrag?'':'style="cursor:default"'}
-          onclick="event.stopPropagation();openDetail('${o.id}')">
-        <div style="font-size:10px;font-weight:700">${sStr}${eStr?' – '+eStr:''}</div>
-        <div class="wev-info">${o.title}</div>
-        ${canDrag?`<div class="wev-resize" data-id="${o.id}" onclick="event.stopPropagation()"></div>`:''}
+      if(eStr){const[he,me2]=eStr.split(':').map(Number);const dur=(he*60+me2)-(hs*60+ms);if(dur>0)height=Math.max(32,(dur/60)*HOUR_H);}
+      h+=`<div class="wev" id="wev-${o.id}" data-id="${o.id}" style="top:${top}px;height:${height}px;background:${getOColor(o)}">
+        <div style="font-size:10px;font-weight:700;pointer-events:none">${sStr}${eStr?' – '+eStr:''}</div>
+        <div class="wev-info" style="pointer-events:none">${o.title}</div>
+        ${canEdit()?`<div class="wev-resize" data-id="${o.id}"></div>`:''}
       </div>`;
     });
     h+='</div>';
   });
   document.getElementById('cal-wrap').innerHTML=h+'</div>';
-  if(canEdit()) initDragResize();
+  initWeekInteraction();
 }
 
-window.addOnWeekDay=(e,ds)=>{
-  if(e.target.closest('.wev'))return;
-  const col=e.currentTarget;
-  const rect=col.getBoundingClientRect();
-  const y=e.clientY-rect.top;
-  const totalMin=(y/HOUR_H)*60+START_H*60;
-  const h=Math.floor(totalMin/60),m=Math.round((totalMin%60)/15)*15;
-  const startStr=`${String(Math.min(h,21)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
-  const endH=Math.min(h+1,22);
-  const endStr=`${String(endH).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
-  window.openAddModal(ds,null,startStr,endStr);
-};
-
-function initDragResize(){
-  // Touch & Mouse drag
-  document.querySelectorAll('.wev').forEach(el=>{
-    el.addEventListener('mousedown',onDragStart);
-    el.addEventListener('touchstart',onDragStart,{passive:false});
-  });
-  document.querySelectorAll('.wev-resize').forEach(el=>{
-    el.addEventListener('mousedown',onResizeStart);
-    el.addEventListener('touchstart',onResizeStart,{passive:false});
-  });
-}
-
+// ── INTERAKTION: Tap = Bearbeiten, Halten/Ziehen = Drag, Resize-Handle = Resize ──
 let dragState=null;
-function onDragStart(e){
-  if(e.target.classList.contains('wev-resize'))return;
-  e.stopPropagation();
-  const el=e.currentTarget;
+
+function initWeekInteraction(){
+  // Leere Spalte: Tap = neuer Termin
+  document.querySelectorAll('.wcol').forEach(col=>{
+    col.addEventListener('click', e=>{
+      if(e.target.closest('.wev')) return;
+      if(!canEdit()) return;
+      const rect=col.getBoundingClientRect();
+      const y=e.clientY-rect.top;
+      const totalMin=Math.round(((y/HOUR_H)*60+START_H*60)/15)*15;
+      const hs=Math.floor(totalMin/60), ms=totalMin%60;
+      const startStr=`${String(Math.min(hs,21)).padStart(2,'0')}:${String(ms).padStart(2,'0')}`;
+      const endStr=`${String(Math.min(hs+1,22)).padStart(2,'0')}:${String(ms).padStart(2,'0')}`;
+      window.openAddModal(col.dataset.date,null,startStr,endStr);
+    });
+  });
+
+  // Resize handles
+  document.querySelectorAll('.wev-resize').forEach(handle=>{
+    handle.addEventListener('mousedown', e=>{e.stopPropagation();e.preventDefault();startResize(e,handle.dataset.id);});
+    handle.addEventListener('touchstart', e=>{e.stopPropagation();e.preventDefault();startResize(e,handle.dataset.id);},{passive:false});
+  });
+
+  // Termin-Balken: Tap vs Drag unterscheiden
+  document.querySelectorAll('.wev').forEach(el=>{
+    let tapTimer=null, moved=false, startX=0, startY=0;
+
+    const pointerDown = e=>{
+      if(e.target.classList.contains('wev-resize')) return;
+      e.stopPropagation();
+      const t=e.touches?e.touches[0]:e;
+      startX=t.clientX; startY=t.clientY; moved=false;
+
+      // kurzer Timer: wenn nicht losgelassen → Drag starten
+      tapTimer=setTimeout(()=>{
+        tapTimer=null;
+        if(!moved) startDrag(e, el);
+      }, 180);
+    };
+
+    const pointerMove = e=>{
+      const t=e.touches?e.touches[0]:e;
+      const dx=Math.abs(t.clientX-startX), dy=Math.abs(t.clientY-startY);
+      if(dx>5||dy>5){
+        moved=true;
+        if(tapTimer){clearTimeout(tapTimer);tapTimer=null;startDrag(e,el);}
+      }
+      if(dragState) onDragMove(e);
+    };
+
+    const pointerUp = e=>{
+      if(tapTimer){
+        clearTimeout(tapTimer);tapTimer=null;
+        // War ein Tap → Bearbeiten öffnen
+        if(!moved){
+          e.stopPropagation();
+          const id=el.dataset.id;
+          if(canEdit()) window.openAddModal('',id);
+          else window.openDetail(id);
+          return;
+        }
+      }
+      if(dragState) onDragEnd(e);
+    };
+
+    el.addEventListener('mousedown', pointerDown);
+    el.addEventListener('touchstart', pointerDown, {passive:false});
+    el.addEventListener('mousemove', pointerMove);
+    el.addEventListener('touchmove', pointerMove, {passive:false});
+    el.addEventListener('mouseup', pointerUp);
+    el.addEventListener('touchend', pointerUp);
+  });
+}
+
+function startDrag(e, el){
   const id=el.dataset.id;
-  const o=orders.find(x=>x.id===id);if(!o)return;
-  const touch=e.touches?e.touches[0]:e;
-  const rect=el.getBoundingClientRect();
-  dragState={type:'drag',id,el,startY:touch.clientY,origTop:parseInt(el.style.top),origDate:o.date,o};
+  const o=orders.find(x=>x.id===id); if(!o||!canEdit()) return;
+  const t=e.touches?e.touches[0]:e;
+  dragState={type:'drag',id,el,startX:t.clientX,startY:t.clientY,origTop:parseInt(el.style.top),o};
   el.classList.add('dragging');
   e.preventDefault();
   document.addEventListener('mousemove',onDragMove);
@@ -580,62 +622,75 @@ function onDragStart(e){
   document.addEventListener('touchmove',onDragMove,{passive:false});
   document.addEventListener('touchend',onDragEnd);
 }
-function onResizeStart(e){
-  e.stopPropagation();e.preventDefault();
-  const id=e.currentTarget.dataset.id;
+
+function startResize(e, id){
   const el=document.getElementById('wev-'+id);
-  const o=orders.find(x=>x.id===id);if(!o)return;
-  const touch=e.touches?e.touches[0]:e;
-  dragState={type:'resize',id,el,startY:touch.clientY,origHeight:parseInt(el.style.height)||HOUR_H,o};
+  const o=orders.find(x=>x.id===id); if(!o||!canEdit()) return;
+  const t=e.touches?e.touches[0]:e;
+  dragState={type:'resize',id,el,startY:t.clientY,origHeight:parseInt(el.style.height)||HOUR_H,o};
   el.classList.add('dragging');
   document.addEventListener('mousemove',onDragMove);
   document.addEventListener('mouseup',onDragEnd);
   document.addEventListener('touchmove',onDragMove,{passive:false});
   document.addEventListener('touchend',onDragEnd);
 }
+
 function onDragMove(e){
-  if(!dragState)return;
+  if(!dragState) return;
   e.preventDefault();
-  const touch=e.touches?e.touches[0]:e;
-  const dy=touch.clientY-dragState.startY;
+  const t=e.touches?e.touches[0]:e;
   if(dragState.type==='drag'){
-    const newTop=Math.max(0,dragState.origTop+dy);
+    const dy=t.clientY-dragState.startY;
+    const newTop=Math.max(0, dragState.origTop+dy);
     dragState.el.style.top=newTop+'px';
+    // Spalte highlighten
+    document.querySelectorAll('.wcol').forEach(c=>c.style.background='');
+    document.querySelectorAll('.wcol').forEach(c=>{
+      const r=c.getBoundingClientRect();
+      if(t.clientX>=r.left&&t.clientX<=r.right) c.style.background='rgba(108,92,231,.08)';
+    });
   } else {
-    const newH=Math.max(28,dragState.origHeight+dy);
-    dragState.el.style.height=newH+'px';
+    const dy=t.clientY-dragState.startY;
+    dragState.el.style.height=Math.max(32,dragState.origHeight+dy)+'px';
   }
 }
+
 async function onDragEnd(e){
-  if(!dragState)return;
-  document.removeEventListener('mousemove',onDragMove);document.removeEventListener('mouseup',onDragEnd);
-  document.removeEventListener('touchmove',onDragMove);document.removeEventListener('touchend',onDragEnd);
-  const {type,id,el,o}=dragState;
-  dragState=null;
+  if(!dragState) return;
+  document.removeEventListener('mousemove',onDragMove); document.removeEventListener('mouseup',onDragEnd);
+  document.removeEventListener('touchmove',onDragMove); document.removeEventListener('touchend',onDragEnd);
+  document.querySelectorAll('.wcol').forEach(c=>c.style.background='');
+  const{type,id,el,o}=dragState; dragState=null;
   el.classList.remove('dragging');
-  const top=parseInt(el.style.top);
+
+  const top=parseInt(el.style.top)||0;
   const height=parseInt(el.style.height)||HOUR_H;
-  // Top → Startzeit
-  const totalMinStart=Math.round((top/HOUR_H)*60/15)*15+START_H*60;
-  const hs=Math.floor(totalMinStart/60),ms=totalMinStart%60;
-  const newStart=`${String(Math.min(hs,21)).padStart(2,'0')}:${String(ms).padStart(2,'0')}`;
-  // Height → Endzeit
-  const durMin=Math.round((height/HOUR_H)*60/15)*15;
-  const totalMinEnd=totalMinStart+Math.max(15,durMin);
-  const he=Math.floor(totalMinEnd/60),me2=totalMinEnd%60;
-  const newEnd=`${String(Math.min(he,23)).padStart(2,'0')}:${String(me2).padStart(2,'0')}`;
-  // Welche Spalte? (nur bei drag für Datum)
+  const snap15=min=>Math.round(min/15)*15;
+
+  // Start aus top
+  const startMinRaw=(top/HOUR_H)*60+START_H*60;
+  const startMin=snap15(startMinRaw);
+  const hs=Math.min(Math.floor(startMin/60),21), ms=startMin%60;
+  const newStart=`${String(hs).padStart(2,'0')}:${String(ms).padStart(2,'0')}`;
+
+  // Ende aus height
+  const durMin=snap15((height/HOUR_H)*60);
+  const endMin=startMin+Math.max(15,durMin);
+  const he=Math.min(Math.floor(endMin/60),23), me2=endMin%60;
+  const newEnd=`${String(he).padStart(2,'0')}:${String(me2).padStart(2,'0')}`;
+
+  // Datum: welche Spalte beim Loslassen
   let newDate=o.date;
   if(type==='drag'){
-    const cols=document.querySelectorAll('.wcol');
-    const touch=e.changedTouches?e.changedTouches[0]:e;
-    cols.forEach(col=>{
+    const pt=e.changedTouches?e.changedTouches[0]:e;
+    document.querySelectorAll('.wcol').forEach(col=>{
       const r=col.getBoundingClientRect();
-      if(touch.clientX>=r.left&&touch.clientX<=r.right) newDate=col.dataset.date;
+      if(pt.clientX>=r.left&&pt.clientX<=r.right) newDate=col.dataset.date;
     });
   }
+
   await update(ref(db,'orders/'+id),{timeStart:newStart,timeEnd:newEnd,time:newStart,date:newDate});
-  showToast('Termin aktualisiert ✓');
+  showToast(`Termin verschoben: ${newStart} – ${newEnd}`);
 }
 
 // ADMIN
