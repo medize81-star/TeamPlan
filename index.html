@@ -231,10 +231,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
   </div>
   <div class="view-bar">
-    <div class="toggle-group">
-      <button class="toggle-btn active" id="btn-month" onclick="setView('month')">Monat</button>
-      <button class="toggle-btn" id="btn-week" onclick="setView('week')">Woche</button>
-      <button class="toggle-btn" id="btn-admin" onclick="setView('admin')" style="display:none">⚙ Team</button>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <div style="position:relative">
+        <button id="btn-cal" onclick="toggleCalDropdown()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px">
+          📅 Kalender <span id="cal-sub-label" style="color:var(--teal);font-size:11px">Monat</span> ▾
+        </button>
+        <div id="cal-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;z-index:300;min-width:130px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+          <button onclick="setCalView('month')" style="display:block;width:100%;background:transparent;border:none;color:var(--text);padding:10px 16px;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px" id="dd-month">📆 Monat</button>
+          <button onclick="setCalView('week')" style="display:block;width:100%;background:transparent;border:none;color:var(--text);padding:10px 16px;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px" id="dd-week">📋 Woche</button>
+        </div>
+      </div>
+      <button class="toggle-btn" id="btn-admin" onclick="setView('admin')" style="display:none">👥 Team</button>
+      <button class="toggle-btn" id="btn-lager" onclick="setView('lager')" style="display:none">📦 Lager</button>
     </div>
     <div class="nav-arrows" id="nav-arrows">
       <button class="btn btn-ghost btn-sm" onclick="navPrev()">‹</button>
@@ -246,6 +254,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="legend" id="legend"></div>
   <div class="cal-wrap" id="cal-wrap"></div>
   <div class="admin-panel" id="admin-panel" style="display:none"></div>
+  <div class="admin-panel" id="lager-panel" style="display:none"></div>
 </div>
 
 <!-- ADD / EDIT MODAL -->
@@ -334,6 +343,55 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- STUNDEN MODAL -->
+<div class="modal-overlay" id="hours-modal">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="mtitle" id="hours-modal-title">Stundenübersicht</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('hours-modal')">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <select class="finput" id="hours-period" onchange="renderHoursModal()" style="flex:1">
+        <option value="week">Diese Woche</option>
+        <option value="month" selected>Dieser Monat</option>
+      </select>
+      <select class="finput" id="hours-month" onchange="renderHoursModal()" style="flex:1">
+        <option value="0">Januar</option><option value="1">Februar</option>
+        <option value="2">März</option><option value="3">April</option>
+        <option value="4">Mai</option><option value="5">Juni</option>
+        <option value="6">Juli</option><option value="7">August</option>
+        <option value="8">September</option><option value="9">Oktober</option>
+        <option value="10">November</option><option value="11">Dezember</option>
+      </select>
+      <select class="finput" id="hours-year" onchange="renderHoursModal()" style="flex:1"></select>
+    </div>
+    <div id="hours-content" style="margin-bottom:16px"></div>
+    <button class="btn btn-primary" onclick="exportHoursPDF()" style="width:100%">📄 Als PDF speichern</button>
+  </div>
+</div>
+
+<!-- LAGER ITEM MODAL -->
+<div class="modal-overlay" id="lager-modal">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="lager-modal-title">Neues Material</div>
+    <input type="hidden" id="lager-edit-id">
+    <div class="fg"><label class="flabel">Bezeichnung</label><input class="finput" id="lager-name" placeholder="z.B. Silikon transparent"></div>
+    <div class="frow">
+      <div class="fg"><label class="flabel">Bestand</label><input class="finput" id="lager-qty" type="number" min="0" placeholder="z.B. 24"></div>
+      <div class="fg"><label class="flabel">Einheit</label><input class="finput" id="lager-unit" placeholder="z.B. Stk, m², Rollen"></div>
+    </div>
+    <div class="fg"><label class="flabel">Mindestbestand (Warnung)</label><input class="finput" id="lager-min" type="number" min="0" placeholder="z.B. 5"></div>
+    <div class="fg"><label class="flabel">Hinweise</label><input class="finput" id="lager-notes" placeholder="Lieferant, Bestellnummer..."></div>
+    <div class="mactions">
+      <button class="btn btn-ghost" onclick="closeModal('lager-modal')">Abbrechen</button>
+      <button class="btn btn-danger btn-sm" id="lager-delete-btn" style="display:none" onclick="deleteLagerItem()">Löschen</button>
+      <button class="btn btn-primary" onclick="saveLagerItem()">Speichern</button>
+    </div>
+  </div>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -459,19 +517,38 @@ function setupUI(){
   document.getElementById('admin-tag').style.display=me.isAdmin?'inline':'none';
   document.getElementById('add-btn').style.display=canEdit()?'inline-block':'none';
   document.getElementById('btn-admin').style.display=me.isAdmin?'inline-block':'none';
+  document.getElementById('btn-lager').style.display=me.isAdmin?'inline-block':'none';
 }
 
 window.setView=v=>{
   view=v;
-  ['month','week','admin'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
-  document.getElementById('nav-arrows').style.display=v==='admin'?'none':'flex';
-  document.getElementById('cal-wrap').style.display=v==='admin'?'none':'block';
+  ['admin','lager'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
+  const isCal=v==='month'||v==='week';
+  const btnCal=document.getElementById('btn-cal');
+  if(btnCal) btnCal.style.background=isCal?'var(--accent)':'var(--surface2)';
+  if(btnCal) btnCal.style.color=isCal?'#fff':'var(--text)';
+  document.getElementById('nav-arrows').style.display=isCal?'flex':'none';
+  document.getElementById('cal-wrap').style.display=isCal?'block':'none';
   document.getElementById('admin-panel').style.display=v==='admin'?'block':'none';
-  document.getElementById('legend').style.display=v==='admin'?'none':'flex';
+  document.getElementById('lager-panel').style.display=v==='lager'?'block':'none';
+  document.getElementById('legend').style.display=isCal?'flex':'none';
+  if(v==='month'||v==='week'){const lbl=document.getElementById('cal-sub-label');if(lbl)lbl.textContent=v==='month'?'Monat':'Woche';}
   renderAll();
 };
+window.setCalView=v=>{
+  document.getElementById('cal-dropdown').style.display='none';
+  window.setView(v);
+};
+window.toggleCalDropdown=()=>{
+  const dd=document.getElementById('cal-dropdown');
+  dd.style.display=dd.style.display==='none'?'block':'none';
+};
+document.addEventListener('click',e=>{
+  const dd=document.getElementById('cal-dropdown');
+  if(dd&&!e.target.closest('#btn-cal')&&!e.target.closest('#cal-dropdown')) dd.style.display='none';
+});
 
-function renderAll(){renderLegend();if(view==='month')renderMonth();else if(view==='week')renderWeek();else renderAdmin();}
+function renderAll(){if(view==='month'||view==='week')renderLegend();if(view==='month')renderMonth();else if(view==='week')renderWeek();else if(view==='admin')renderAdmin();else if(view==='lager')renderLager();}
 
 function renderLegend(){
   const list=me.isAdmin?persons:persons.filter(p=>p.id===me.id);
@@ -706,6 +783,7 @@ function renderAdmin(){
       </div>
       <div class="prow-actions">
         ${!p.isAdmin?`<span class="permission-badge ${canE?'perm-on':'perm-off'}" onclick="toggleEdit('${p.id}',${canE})" style="cursor:pointer" title="Bearbeiten erlauben">${canE?'✏️ Kann bearbeiten':'🔒 Nur lesen'}</span>`:''}
+        <button class="btn btn-ghost btn-sm" onclick="openHoursModal('${p.id}')" title="Stunden">🕐</button>
         <button class="btn btn-ghost btn-sm" onclick="openEditUser('${p.id}')">✏️</button>
         ${!p.isAdmin?`<button class="btn btn-ghost btn-sm" onclick="removePerson('${p.id}')">🗑</button>`:''}
       </div>
@@ -732,6 +810,208 @@ function renderAdmin(){
   document.getElementById('admin-panel').innerHTML=h;
   buildPalette('new-user-palette','new-user-color-native','new-user-color-hex','new-user-color-preview','#6c5ce7',c=>userColor=c);
 }
+
+// ── STUNDEN ──
+window.openHoursModal=id=>{
+  const p=persons.find(x=>x.id===id);if(!p)return;
+  document.getElementById('hours-modal-title').textContent=p.name+' – Stunden';
+  document.getElementById('hours-modal').dataset.uid=id;
+  // Aktuellen Monat + Jahr vorauswählen
+  const now=new Date();
+  document.getElementById('hours-month').value=now.getMonth();
+  // Jahr-Dropdown füllen
+  const ySel=document.getElementById('hours-year');
+  ySel.innerHTML='';
+  for(let y=now.getFullYear();y>=now.getFullYear()-3;y--){
+    const o=document.createElement('option');o.value=y;o.textContent=y;ySel.appendChild(o);
+  }
+  renderHoursModal();
+  document.getElementById('hours-modal').classList.add('open');
+};
+
+window.renderHoursModal=()=>{
+  const uid=document.getElementById('hours-modal').dataset.uid;
+  const period=document.getElementById('hours-period').value;
+  const month=parseInt(document.getElementById('hours-month').value);
+  const year=parseInt(document.getElementById('hours-year').value||new Date().getFullYear());
+  const monthSel=document.getElementById('hours-month');
+  monthSel.style.display=period==='week'?'none':'block';
+
+  let filtered=[];
+  if(period==='month'){
+    filtered=orders.filter(o=>{
+      if(!o.persons?.includes(uid)) return false;
+      const d=new Date(o.date);
+      return d.getFullYear()===year&&d.getMonth()===month;
+    });
+  } else {
+    const now=new Date();
+    const mon=new Date(now);mon.setDate(now.getDate()-(now.getDay()+6)%7);mon.setHours(0,0,0,0);
+    const sun=new Date(mon);sun.setDate(sun.getDate()+6);sun.setHours(23,59,59,999);
+    filtered=orders.filter(o=>{
+      if(!o.persons?.includes(uid)) return false;
+      const d=new Date(o.date);return d>=mon&&d<=sun;
+    });
+  }
+
+  let totalMin=0;
+  const rows=filtered.map(o=>{
+    const s=o.timeStart||o.time||'';const e=o.timeEnd||'';
+    let dur=0,durStr='–';
+    if(s&&e){
+      const[hs,ms]=s.split(':').map(Number);const[he,me2]=e.split(':').map(Number);
+      dur=(he*60+me2)-(hs*60+ms);
+      if(dur>0){totalMin+=dur;durStr=Math.floor(dur/60)+'h'+(dur%60?(' '+dur%60+'min'):'');}
+    }
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 4px;font-size:13px">${o.date}</td>
+      <td style="padding:8px 4px;font-size:13px">${o.title}</td>
+      <td style="padding:8px 4px;font-size:13px;font-family:'DM Mono',monospace">${s}${e?' – '+e:''}</td>
+      <td style="padding:8px 4px;font-size:13px;font-weight:600;color:var(--teal);font-family:'DM Mono',monospace">${durStr}</td>
+    </tr>`;
+  }).join('');
+
+  const totalH=Math.floor(totalMin/60);const totalM=totalMin%60;
+  document.getElementById('hours-content').innerHTML=filtered.length===0
+    ?'<div style="color:var(--muted);text-align:center;padding:24px">Keine Aufträge in diesem Zeitraum</div>'
+    :`<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="padding:6px 4px;font-size:11px;color:var(--muted);text-align:left">Datum</th>
+        <th style="padding:6px 4px;font-size:11px;color:var(--muted);text-align:left">Auftrag</th>
+        <th style="padding:6px 4px;font-size:11px;color:var(--muted);text-align:left">Zeit</th>
+        <th style="padding:6px 4px;font-size:11px;color:var(--muted);text-align:left">Dauer</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="margin-top:12px;padding:10px 12px;background:var(--surface2);border-radius:var(--rs);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;color:var(--muted)">Gesamt</span>
+      <span style="font-size:16px;font-weight:700;color:var(--teal)">${totalH}h${totalM?' '+totalM+'min':''}</span>
+    </div>`;
+};
+
+window.exportHoursPDF=()=>{
+  const uid=document.getElementById('hours-modal').dataset.uid;
+  const p=persons.find(x=>x.id===uid);
+  const period=document.getElementById('hours-period').value;
+  const monthNames=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const month=parseInt(document.getElementById('hours-month').value);
+  const year=document.getElementById('hours-year').value;
+  const periodLabel=period==='week'?'Diese Woche':monthNames[month]+' '+year;
+  const content=document.getElementById('hours-content').innerHTML;
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Stunden ${p.name}</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:32px;color:#111}
+      h1{font-size:20px;margin-bottom:4px}
+      h2{font-size:14px;color:#666;font-weight:normal;margin-bottom:24px}
+      table{width:100%;border-collapse:collapse}
+      th{font-size:11px;color:#666;text-align:left;padding:6px 4px;border-bottom:2px solid #ddd}
+      td{font-size:13px;padding:8px 4px;border-bottom:1px solid #eee}
+      .total{margin-top:12px;padding:10px 12px;background:#f5f5f5;border-radius:8px;display:flex;justify-content:space-between}
+    </style>
+  </head><body>
+    <h1>Stundenübersicht – ${p.name}</h1>
+    <h2>${periodLabel}</h2>
+    ${content.replace(/var\(--[^)]+\)/g,'#333').replace(/style="[^"]*color:var[^"]*"/g,'').replace(/background:var[^;]*/g,'background:#f5f5f5')}
+    <script>window.onload=()=>window.print()<\/script>
+  </body></html>`);
+  win.document.close();
+};
+
+// ── LAGER ──
+let lagerItems=[];
+onValue(ref(db,'lager'),s=>{
+  lagerItems=[];
+  if(s.exists()) Object.keys(s.val()).forEach(k=>lagerItems.push({id:k,...s.val()[k]}));
+  if(me&&view==='lager') renderLager();
+});
+
+function renderLager(){
+  const isAdmin=me&&me.isAdmin;
+  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div class="ptitle" style="margin:0">Lagerbestand</div>
+    ${isAdmin?'<button class="btn btn-primary btn-sm" onclick="openLagerModal()">+ Material</button>':''}
+  </div>`;
+
+  if(lagerItems.length===0){
+    h+='<div style="color:var(--muted);text-align:center;padding:32px">Noch keine Materialien eingetragen</div>';
+  } else {
+    h+='<div style="display:flex;flex-direction:column;gap:8px">';
+    lagerItems.forEach(item=>{
+      const low=item.min&&item.qty<=item.min;
+      h+=`<div style="background:var(--surface);border:1px solid ${low?'var(--danger)':'var(--border)'};border-radius:12px;padding:12px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:600">${item.name}${low?' <span style="color:var(--danger);font-size:11px">⚠ Nachbestellen!</span>':''}</div>
+            ${item.notes?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${item.notes}</div>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="text-align:right">
+              <div style="font-size:20px;font-weight:700;color:${low?'var(--danger)':'var(--teal)'}">${item.qty}</div>
+              <div style="font-size:11px;color:var(--muted)">${item.unit||'Stk'}</div>
+            </div>
+            ${isAdmin?`<div style="display:flex;flex-direction:column;gap:4px">
+              <button class="btn btn-ghost btn-sm" onclick="openLagerModal('${item.id}')">✏️</button>
+              <button class="btn btn-ghost btn-sm" onclick="adjustQty('${item.id}',1)" style="color:var(--green)">+</button>
+              <button class="btn btn-ghost btn-sm" onclick="adjustQty('${item.id}',-1)" style="color:var(--danger)">−</button>
+            </div>`:''}
+          </div>
+        </div>
+      </div>`;
+    });
+    h+='</div>';
+  }
+  document.getElementById('lager-panel').innerHTML=h;
+}
+
+window.openLagerModal=(id=null)=>{
+  document.getElementById('lager-modal-title').textContent=id?'Material bearbeiten':'Neues Material';
+  document.getElementById('lager-edit-id').value=id||'';
+  document.getElementById('lager-delete-btn').style.display=id?'inline-block':'none';
+  if(id){
+    const item=lagerItems.find(x=>x.id===id);
+    document.getElementById('lager-name').value=item.name||'';
+    document.getElementById('lager-qty').value=item.qty||0;
+    document.getElementById('lager-unit').value=item.unit||'';
+    document.getElementById('lager-min').value=item.min||'';
+    document.getElementById('lager-notes').value=item.notes||'';
+  } else {
+    ['lager-name','lager-unit','lager-notes'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('lager-qty').value=0;
+    document.getElementById('lager-min').value='';
+  }
+  document.getElementById('lager-modal').classList.add('open');
+};
+
+window.saveLagerItem=async()=>{
+  const id=document.getElementById('lager-edit-id').value;
+  const name=document.getElementById('lager-name').value.trim();
+  if(!name){showToast('Bitte Bezeichnung eingeben');return;}
+  const item={
+    name,
+    qty:parseInt(document.getElementById('lager-qty').value)||0,
+    unit:document.getElementById('lager-unit').value.trim()||'Stk',
+    min:parseInt(document.getElementById('lager-min').value)||0,
+    notes:document.getElementById('lager-notes').value.trim()
+  };
+  if(id) await update(ref(db,'lager/'+id),item);
+  else await set(push(ref(db,'lager')),item);
+  closeModal('lager-modal');showToast('Gespeichert ✓');
+};
+
+window.deleteLagerItem=async()=>{
+  const id=document.getElementById('lager-edit-id').value;
+  if(!confirm('Material wirklich löschen?'))return;
+  await remove(ref(db,'lager/'+id));
+  closeModal('lager-modal');showToast('Gelöscht');
+};
+
+window.adjustQty=async(id,delta)=>{
+  const item=lagerItems.find(x=>x.id===id);if(!item)return;
+  const newQty=Math.max(0,item.qty+delta);
+  await update(ref(db,'lager/'+id),{qty:newQty});
+};
 
 window.toggleEdit=async(id,currentlyCanEdit)=>{
   await update(ref(db,'persons/'+id),{canEdit:!currentlyCanEdit});
