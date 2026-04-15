@@ -232,14 +232,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
   <div class="view-bar">
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <div style="position:relative">
-        <button id="btn-cal" onclick="toggleCalDropdown()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px">
-          📅 Kalender <span id="cal-sub-label" style="color:var(--teal);font-size:11px">Monat</span> ▾
-        </button>
-        <div id="cal-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;z-index:300;min-width:130px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
-          <button onclick="setCalView('month')" style="display:block;width:100%;background:transparent;border:none;color:var(--text);padding:10px 16px;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px" id="dd-month">📆 Monat</button>
-          <button onclick="setCalView('week')" style="display:block;width:100%;background:transparent;border:none;color:var(--text);padding:10px 16px;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px" id="dd-week">📋 Woche</button>
-        </div>
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="btn-month" onclick="setView('month')">📆 Monat</button>
+        <button class="toggle-btn" id="btn-week" onclick="setView('week')">📋 Woche</button>
       </div>
       <button class="toggle-btn" id="btn-admin" onclick="setView('admin')" style="display:none">👥 Team</button>
       <button class="toggle-btn" id="btn-lager" onclick="setView('lager')" style="display:none">📦 Lager</button>
@@ -501,52 +496,49 @@ function tryLogin(){
 }
 function loginAs(user){
   me=user;saveSession(user);
+  view='month';
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='flex';
-  setupUI();renderAll();
+  setupUI();
+  window.setView('month');
 }
 window.logout=()=>{me=null;clearSession();document.getElementById('app').style.display='none';showLoginScreen();};
 init().catch(()=>{document.getElementById('loading').innerHTML='<div style="color:#e17055;text-align:center;padding:24px">Verbindung fehlgeschlagen</div>';});
 
 function canEdit(){return me&&(me.isAdmin||me.canEdit===true);}
 
+function canEditLager(){return me&&(me.isAdmin||me.canEditLager===true);}
+function canEditKalender(){return me&&(me.isAdmin||me.canEdit===true);}
+
 function setupUI(){
   const dot=document.getElementById('user-dot');
   dot.textContent=me.name[0].toUpperCase();dot.style.background=me.color;
   document.getElementById('user-name-label').textContent=me.name;
   document.getElementById('admin-tag').style.display=me.isAdmin?'inline':'none';
-  document.getElementById('add-btn').style.display=canEdit()?'inline-block':'none';
+  // + Auftrag Button: nur Admin oder canEdit
+  document.getElementById('add-btn').style.display=canEditKalender()?'inline-block':'none';
+  // Team Panel: NUR Admin
   document.getElementById('btn-admin').style.display=me.isAdmin?'inline-block':'none';
-  document.getElementById('btn-lager').style.display=me.isAdmin?'inline-block':'none';
+  // Lager: alle User sehen es
+  document.getElementById('btn-lager').style.display='inline-block';
+  // Kalender als Startseite immer
+  if(view!=='month'&&view!=='week') view='month';
 }
 
 window.setView=v=>{
   view=v;
-  ['admin','lager'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
   const isCal=v==='month'||v==='week';
-  const btnCal=document.getElementById('btn-cal');
-  if(btnCal) btnCal.style.background=isCal?'var(--accent)':'var(--surface2)';
-  if(btnCal) btnCal.style.color=isCal?'#fff':'var(--text)';
+  // Toggle-Buttons Monat/Woche
+  ['month','week'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
+  // Admin/Lager Buttons
+  ['admin','lager'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
   document.getElementById('nav-arrows').style.display=isCal?'flex':'none';
   document.getElementById('cal-wrap').style.display=isCal?'block':'none';
   document.getElementById('admin-panel').style.display=v==='admin'?'block':'none';
   document.getElementById('lager-panel').style.display=v==='lager'?'block':'none';
   document.getElementById('legend').style.display=isCal?'flex':'none';
-  if(v==='month'||v==='week'){const lbl=document.getElementById('cal-sub-label');if(lbl)lbl.textContent=v==='month'?'Monat':'Woche';}
   renderAll();
 };
-window.setCalView=v=>{
-  document.getElementById('cal-dropdown').style.display='none';
-  window.setView(v);
-};
-window.toggleCalDropdown=()=>{
-  const dd=document.getElementById('cal-dropdown');
-  dd.style.display=dd.style.display==='none'?'block':'none';
-};
-document.addEventListener('click',e=>{
-  const dd=document.getElementById('cal-dropdown');
-  if(dd&&!e.target.closest('#btn-cal')&&!e.target.closest('#cal-dropdown')) dd.style.display='none';
-});
 
 function renderAll(){if(view==='month'||view==='week')renderLegend();if(view==='month')renderMonth();else if(view==='week')renderWeek();else if(view==='admin')renderAdmin();else if(view==='lager')renderLager();}
 
@@ -573,9 +565,16 @@ function mday(dt,other,isToday=false){
   const ds=dt.toISOString().slice(0,10),ords=dayOrders(ds);
   let chips=ords.slice(0,3).map(o=>`<div class="chip" style="background:${getOColor(o)}" onclick="event.stopPropagation();openDetail('${o.id}')">${o.timeStart||o.time?((o.timeStart||o.time)+' '):''}${o.title}</div>`).join('');
   if(ords.length>3)chips+=`<div style="font-size:9px;color:var(--muted);padding:1px 4px">+${ords.length-3}</div>`;
-  const cl=canEdit()?`onclick="openAddOnDay('${ds}')"`:'';
-  return `<div class="mday${other?' other':''}${isToday?' today':''}" ${cl}><div class="dnum">${dt.getDate()}</div><div class="dchips">${chips}</div></div>`;
+  // Klick auf Tag → Wochenansicht dieser Woche
+  return `<div class="mday${other?' other':''}${isToday?' today':''}" onclick="jumpToWeek('${ds}',event)"><div class="dnum">${dt.getDate()}</div><div class="dchips">${chips}</div></div>`;
 }
+
+// Springe zur Wochenansicht des angeklickten Tags
+window.jumpToWeek=(ds,e)=>{
+  if(e.target.closest('.chip')) return; // Chip-Klick → Detail, kein Wechsel
+  curDate=new Date(ds);
+  window.setView('week');
+};
 
 // ── WOCHE MIT DRAG & RESIZE ──
 const HOUR_H=56, START_H=6;
@@ -773,6 +772,7 @@ function renderAdmin(){
   let h=`<div class="ptitle">Team-Mitglieder</div><div class="plist">`;
   persons.forEach(p=>{
     const canE=p.isAdmin||p.canEdit===true;
+    const canEL=p.isAdmin||p.canEditLager===true;
     h+=`<div class="prow">
       <div class="prow-l">
         <div class="pswatch" style="background:${p.color}">${p.name[0].toUpperCase()}</div>
@@ -782,7 +782,12 @@ function renderAdmin(){
         </div>
       </div>
       <div class="prow-actions">
-        ${!p.isAdmin?`<span class="permission-badge ${canE?'perm-on':'perm-off'}" onclick="toggleEdit('${p.id}',${canE})" style="cursor:pointer" title="Bearbeiten erlauben">${canE?'✏️ Kann bearbeiten':'🔒 Nur lesen'}</span>`:''}
+        ${!p.isAdmin?`
+          <div style="display:flex;flex-direction:column;gap:3px;margin-right:4px">
+            <span class="permission-badge ${canE?'perm-on':'perm-off'}" onclick="toggleEdit('${p.id}',${canE})" style="cursor:pointer;font-size:10px" title="Kalender bearbeiten">${canE?'📅 Kalender ✓':'📅 Kalender 🔒'}</span>
+            <span class="permission-badge ${canEL?'perm-on':'perm-off'}" onclick="toggleLagerEdit('${p.id}',${canEL})" style="cursor:pointer;font-size:10px" title="Lager bearbeiten">${canEL?'📦 Lager ✓':'📦 Lager 🔒'}</span>
+          </div>
+        `:''}
         <button class="btn btn-ghost btn-sm" onclick="openHoursModal('${p.id}')" title="Stunden">🕐</button>
         <button class="btn btn-ghost btn-sm" onclick="openEditUser('${p.id}')">✏️</button>
         ${!p.isAdmin?`<button class="btn btn-ghost btn-sm" onclick="removePerson('${p.id}')">🗑</button>`:''}
@@ -928,7 +933,7 @@ onValue(ref(db,'lager'),s=>{
 });
 
 function renderLager(){
-  const isAdmin=me&&me.isAdmin;
+  const isAdmin=me&&(me.isAdmin||me.canEditLager===true);
   let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
     <div class="ptitle" style="margin:0">Lagerbestand</div>
     ${isAdmin?'<button class="btn btn-primary btn-sm" onclick="openLagerModal()">+ Material</button>':''}
@@ -1015,7 +1020,11 @@ window.adjustQty=async(id,delta)=>{
 
 window.toggleEdit=async(id,currentlyCanEdit)=>{
   await update(ref(db,'persons/'+id),{canEdit:!currentlyCanEdit});
-  showToast(currentlyCanEdit?'Nur Lesen aktiviert':'Bearbeiten erlaubt ✓');
+  showToast(currentlyCanEdit?'Kalender: Nur Lesen':'Kalender: Bearbeiten ✓');
+};
+window.toggleLagerEdit=async(id,currentlyCanEdit)=>{
+  await update(ref(db,'persons/'+id),{canEditLager:!currentlyCanEdit});
+  showToast(currentlyCanEdit?'Lager: Nur Lesen':'Lager: Bearbeiten ✓');
 };
 
 window.openEditUser=id=>{
