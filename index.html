@@ -589,12 +589,10 @@ function initWeekInteraction(){
     const pointerUp = e=>{
       if(tapTimer){
         clearTimeout(tapTimer);tapTimer=null;
-        // War ein Tap → Bearbeiten öffnen
+        // War ein Tap → Detail-Fenster öffnen (wie Monatsansicht)
         if(!moved){
           e.stopPropagation();
-          const id=el.dataset.id;
-          if(canEdit()) window.openAddModal('',id);
-          else window.openDetail(id);
+          window.openDetail(el.dataset.id);
           return;
         }
       }
