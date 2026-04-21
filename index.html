@@ -700,19 +700,22 @@ function setupUI(){
 window.setView=v=>{
   view=v;
   const isCal=v==='month'||v==='week';
-  // Toggle-Buttons Monat/Woche
-  ['month','week'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
-  // Admin/Lager Buttons
-  // Highlight Verwaltung button when in admin/lager/umsatz
-  const vBtn=document.getElementById('btn-verwaltung');
-  const isVerwaltung=['admin','lager','umsatz'].includes(v);
-  if(vBtn){vBtn.style.background=isVerwaltung?'rgba(108,92,231,.2)':'';}
+  // Alle Buttons aktualisieren
+  ['month','week','admin','lager','umsatz','verwaltung'].forEach(x=>{
+    const el=document.getElementById('btn-'+x);
+    if(el) el.classList.toggle('active',x===v);
+  });
+  // Kalender Hauptbutton
+  const kalBtn=document.getElementById('btn-kalender');
+  if(kalBtn) kalBtn.classList.toggle('active', isCal);
+  // Panels ein/ausblenden
   document.getElementById('nav-arrows').style.display=isCal?'flex':'none';
   document.getElementById('cal-wrap').style.display=isCal?'block':'none';
+  document.getElementById('legend').style.display=isCal?'flex':'none';
   document.getElementById('admin-panel').style.display=v==='admin'?'block':'none';
   document.getElementById('lager-panel').style.display=v==='lager'?'block':'none';
   document.getElementById('umsatz-panel').style.display=v==='umsatz'?'block':'none';
-  document.getElementById('legend').style.display=isCal?'flex':'none';
+  document.getElementById('verwaltung-panel').style.display=v==='verwaltung'?'block':'none';
   renderAll();
 };
 
@@ -987,8 +990,8 @@ function renderAdmin(){
     </div>`;
   });
   h+=`</div>
-  <div style="margin-top:10px">
-    <button class="btn btn-ghost" onclick="setView('verwaltung')" style="width:100%;font-size:13px">⚙ Team-Listen verwalten → Verwaltung</button>
+  <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+    <button class="btn btn-ghost" onclick="setView('verwaltung')" style="width:100%;font-size:12px;color:var(--muted)">⚙ User hinzufügen/bearbeiten → Verwaltung</button>
   </div>`;
   document.getElementById('admin-panel').innerHTML=h;
 }
@@ -1134,10 +1137,7 @@ function renderLager(){
 
   let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
     <div class="ptitle" style="margin:0">Lagerbestand</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">
-      ${isAdmin?'<button class="btn btn-ghost btn-sm" onclick="openOrtModal()">+ Lagerort</button>':''}
-      ${isAdmin?'<button class="btn btn-primary btn-sm" onclick="openMatModal()">+ Material</button>':''}
-    </div>
+    ${isAdmin?'<button class="btn btn-ghost btn-sm" onclick="setView(&quot;verwaltung&quot;)" title="Verwaltung">⚙ Verwalten</button>':''}
   </div>`;
 
   // Lagerort-Tabs
@@ -1461,7 +1461,7 @@ function renderUmsatz(){
       </table>
     </div>`:'<div style="text-align:center;padding:24px;color:var(--muted)">Keine Aufträge mit Umsatz in diesem Zeitraum</div>'}
     <button class="btn btn-primary" onclick="exportUmsatzPDF()" style="width:100%;margin-top:14px">📄 Als PDF exportieren</button>
-    <button class="btn btn-ghost" onclick="openPreislisteMgmt()" style="width:100%;margin-top:8px">📋 Preisliste verwalten</button>
+    <button class="btn btn-ghost" onclick="setView('verwaltung')" style="width:100%;margin-top:8px">⚙ Preisliste verwalten → Verwaltung</button>
   `;
 }
 
