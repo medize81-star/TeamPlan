@@ -1119,7 +1119,7 @@ function renderLager(){
               return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:6px">
                 <span style="color:var(--muted)">${o.name}:</span>
                 <span style="font-weight:600">${qty}</span>
-                ${isAdmin&&!o.isMain?`<button onclick="openUmbuchModal('${mat.id}','${o.id}')" style="background:transparent;border:none;color:var(--accent);cursor:pointer;font-size:11px;padding:0" title="Umbuchen">⇄</button>`:''}
+  
               </div>`;
             }).join('')}
           </div>
@@ -1295,6 +1295,17 @@ window.adjustBestand=async(matId,ortId,delta)=>{
   const current=getBestand(matId,ortId);
   const newQty=Math.max(0,current+delta);
   await set(ref(db,'lagerBestand/'+matId+'_'+ortId),newQty);
+  // Wenn in Sekundärlager hinzugefügt → automatisch vom Hauptlager abziehen
+  const ort=lagerOrte.find(o=>o.id===ortId);
+  if(delta>0 && ort && !ort.isMain){
+    const mainOrt=getMainOrt();
+    const hauptBestand=getBestand(matId,mainOrt.id);
+    if(hauptBestand>=delta){
+      await set(ref(db,'lagerBestand/'+matId+'_'+mainOrt.id), Math.max(0,hauptBestand-delta));
+    } else {
+      showToast('⚠ Nur '+hauptBestand+' im Hauptlager!');
+    }
+  }
 };
 
 // Hauptlager initialisieren wenn noch nicht vorhanden
@@ -1479,29 +1490,100 @@ window.removePerson=async id=>{
 function dayOrders(ds){return orders.filter(o=>o.date===ds&&(me.isAdmin||o.persons?.includes(me.id)));}
 function monday(d){const dt=new Date(d);dt.setDate(dt.getDate()-(dt.getDay()+6)%7);return dt;}
 
+// ── LEISTUNGEN STATE ──
+let leistungen=[];
+
+window.setDateMode=mode=>{
+  const isSingle=mode==='single';
+  const btnS=document.getElementById('dmode-single');
+  const btnR=document.getElementById('dmode-range');
+  const endWrap=document.getElementById('date-range-end');
+  if(btnS){btnS.style.borderColor=isSingle?'var(--accent)':'var(--border)';btnS.style.background=isSingle?'rgba(108,92,231,.15)':'transparent';btnS.style.color=isSingle?'var(--accent)':'var(--muted)';}
+  if(btnR){btnR.style.borderColor=!isSingle?'var(--accent)':'var(--border)';btnR.style.background=!isSingle?'rgba(108,92,231,.15)':'transparent';btnR.style.color=!isSingle?'var(--accent)':'var(--muted)';}
+  if(endWrap) endWrap.style.display=isSingle?'none':'block';
+};
+
+window.addLeistung=(l=null)=>{
+  const id='l'+Date.now()+Math.random().toString(36).slice(2,5);
+  leistungen.push({id,qty:l?l.qty:1,desc:l?l.desc:'',price:l?l.price:0});
+  renderLeistungen();
+};
+window.removeLeistung=id=>{
+  leistungen=leistungen.filter(x=>x.id!==id);
+  renderLeistungen();
+};
+window.updL=(id,field,val)=>{
+  const l=leistungen.find(x=>x.id===id);
+  if(!l)return;
+  l[field]=field==='desc'?val:(parseFloat(val)||0);
+  updateTotal();
+};
+function renderLeistungen(){
+  const wrap=document.getElementById('leistung-list');
+  if(!wrap)return;
+  if(leistungen.length===0){
+    wrap.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px">Keine Positionen — + Position drücken</div>';
+  } else {
+    wrap.innerHTML='';
+    leistungen.forEach(l=>{
+      const div=document.createElement('div');
+      div.style.cssText='display:grid;grid-template-columns:52px 1fr 80px 26px;gap:6px;align-items:center;margin-bottom:4px';
+      div.innerHTML=`
+        <input class="finput" type="number" min="1" value="${l.qty}" placeholder="Stk" style="padding:7px 6px;font-size:13px" oninput="updL('${l.id}','qty',this.value)">
+        <input class="finput" value="${l.desc||''}" placeholder="Beschreibung" style="padding:7px 8px;font-size:13px" oninput="updL('${l.id}','desc',this.value)">
+        <input class="finput" type="number" min="0" step="0.01" value="${l.price}" placeholder="CHF" style="padding:7px 6px;font-size:13px" oninput="updL('${l.id}','price',this.value)">
+        <button onclick="removeLeistung('${l.id}')" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:18px;padding:0;line-height:1">×</button>`;
+      wrap.appendChild(div);
+    });
+  }
+  updateTotal();
+}
+function updateTotal(){
+  const t=leistungen.reduce((s,l)=>s+(l.qty||0)*(l.price||0),0);
+  const el=document.getElementById('leistung-total');
+  if(el) el.textContent='CHF '+t.toFixed(2);
+}
+function strToHM(s){if(!s)return['',''];const p=s.split(':');return[p[0]||'',p[1]||''];}
+
 window.openAddModal=(date='',oid=null,preStart='',preEnd='')=>{
-  editId=oid;selPersons=[];
+  editId=oid; selPersons=[]; leistungen=[];
   document.getElementById('modal-title').textContent=oid?'Auftrag bearbeiten':'Neuer Auftrag';
   document.getElementById('delete-btn').style.display=oid?'inline-block':'none';
   let initColor='#6c5ce7';
+  window.setDateMode('single');
   if(oid){
-    const o=orders.find(x=>x.id===oid);
-    document.getElementById('f-title').value=o.title;
-    document.getElementById('f-date').value=o.date;
-    document.getElementById('f-time-start').value=o.timeStart||o.time||'';
-    document.getElementById('f-time-end').value=o.timeEnd||'';
+    const o=orders.find(x=>x.id===oid); if(!o)return;
+    document.getElementById('f-title').value=o.title||'';
+    document.getElementById('f-date').value=o.date||'';
+    document.getElementById('f-date-end').value=o.dateEnd||'';
+    if(o.dateEnd&&o.dateEnd!==o.date) window.setDateMode('range');
+    const[sh,sm]=strToHM(o.timeStart||o.time||'');
+    const[eh,em]=strToHM(o.timeEnd||'');
+    document.getElementById('f-time-start-h').value=sh;
+    document.getElementById('f-time-start-m').value=sm;
+    document.getElementById('f-time-end-h').value=eh;
+    document.getElementById('f-time-end-m').value=em;
     document.getElementById('f-address').value=o.address||'';
     document.getElementById('f-notes').value=o.notes||'';
     selPersons=o.persons?[...o.persons]:[];
     initColor=o.color||'#6c5ce7';
+    if(o.leistungen&&o.leistungen.length>0){
+      leistungen=o.leistungen.map(l=>({...l,id:'l'+Date.now()+Math.random().toString(36).slice(2,5)}));
+    }
   } else {
     ['f-title','f-address','f-notes'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('f-date').value=date;
-    document.getElementById('f-time-start').value=preStart||'';
-    document.getElementById('f-time-end').value=preEnd||'';
+    document.getElementById('f-date').value=date||'';
+    document.getElementById('f-date-end').value='';
+    const[sh,sm]=strToHM(preStart);
+    const[eh,em]=strToHM(preEnd);
+    document.getElementById('f-time-start-h').value=sh;
+    document.getElementById('f-time-start-m').value=sm;
+    document.getElementById('f-time-end-h').value=eh;
+    document.getElementById('f-time-end-m').value=em;
   }
   orderColor=initColor;
   buildPalette('order-palette','order-color-native','order-color-hex','order-color-preview',initColor,c=>orderColor=c);
+  renderLeistungen();
   renderPchecks();
   document.getElementById('add-modal').classList.add('open');
 };
