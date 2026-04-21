@@ -236,9 +236,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <button class="toggle-btn active" id="btn-month" onclick="setView('month')">📆 Monat</button>
         <button class="toggle-btn" id="btn-week" onclick="setView('week')">📋 Woche</button>
       </div>
-      <button class="toggle-btn" id="btn-admin" onclick="setView('admin')" style="display:none">👥 Team</button>
-      <button class="toggle-btn" id="btn-lager" onclick="setView('lager')" style="display:none">📦 Lager</button>
-      <button class="toggle-btn" id="btn-umsatz" onclick="setView('umsatz')" style="display:none">💶 Umsatz</button>
+      <!-- Verwaltung Dropdown (nur Admin) -->
+      <div style="position:relative" id="verwaltung-wrap">
+        <button id="btn-verwaltung" onclick="toggleVerwaltung()" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;align-items:center;gap:5px">
+          ⚙ Verwaltung ▾
+        </button>
+        <div id="verwaltung-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;z-index:300;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+          <button onclick="setView('admin');closeVerwaltung()" id="btn-admin" style="display:block;width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:11px 16px;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px">👥 Team / User</button>
+          <button onclick="setView('lager');closeVerwaltung()" id="btn-lager" style="display:block;width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:11px 16px;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px">📦 Lager</button>
+          <button onclick="setView('umsatz');closeVerwaltung()" id="btn-umsatz" style="display:block;width:100%;background:transparent;border:none;color:var(--text);padding:11px 16px;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px">💶 Umsatz & Preise</button>
+        </div>
+      </div>
+      <!-- Lager auch für normale User sichtbar -->
+      <button class="toggle-btn" id="btn-lager-user" onclick="setView('lager')" style="display:none">📦 Lager</button>
     </div>
     <div class="nav-arrows" id="nav-arrows">
       <button class="btn btn-ghost btn-sm" onclick="navPrev()">‹</button>
@@ -674,11 +684,12 @@ function setupUI(){
   document.getElementById('admin-tag').style.display=me.isAdmin?'inline':'none';
   // + Auftrag Button: nur Admin oder canEdit
   document.getElementById('add-btn').style.display=canEditKalender()?'inline-block':'none';
-  // Team Panel: NUR Admin
-  document.getElementById('btn-admin').style.display=me.isAdmin?'inline-block':'none';
-  // Lager: alle User sehen es
-  document.getElementById('btn-lager').style.display='inline-block';
-  document.getElementById('btn-umsatz').style.display=me.isAdmin?'inline-block':'none';
+  // Verwaltung Dropdown: nur Admin
+  const vBtn=document.getElementById('btn-verwaltung');
+  if(vBtn) vBtn.style.display=me.isAdmin?'flex':'none';
+  // Lager Button für normale User
+  const lUserBtn=document.getElementById('btn-lager-user');
+  if(lUserBtn) lUserBtn.style.display=me.isAdmin?'none':'inline-block';
   // Kalender als Startseite immer
   if(view!=='month'&&view!=='week') view='month';
 }
@@ -689,7 +700,10 @@ window.setView=v=>{
   // Toggle-Buttons Monat/Woche
   ['month','week'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
   // Admin/Lager Buttons
-  ['admin','lager','umsatz'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
+  // Highlight Verwaltung button when in admin/lager/umsatz
+  const vBtn=document.getElementById('btn-verwaltung');
+  const isVerwaltung=['admin','lager','umsatz'].includes(v);
+  if(vBtn){vBtn.style.background=isVerwaltung?'rgba(108,92,231,.2)':'';}
   document.getElementById('nav-arrows').style.display=isCal?'flex':'none';
   document.getElementById('cal-wrap').style.display=isCal?'block':'none';
   document.getElementById('admin-panel').style.display=v==='admin'?'block':'none';
@@ -1654,6 +1668,11 @@ window.removeLeistung=id=>{
   leistungen=leistungen.filter(x=>x.id!==id);
   renderLeistungen();
 };
+window.updLQty=(id,delta)=>{
+  const l=leistungen.find(x=>x.id===id);if(!l)return;
+  l.qty=Math.max(1,(l.qty||1)+delta);
+  renderLeistungen();
+};
 window.updL=(id,field,val)=>{
   const l=leistungen.find(x=>x.id===id);
   if(!l)return;
@@ -1664,20 +1683,28 @@ function renderLeistungen(){
   const wrap=document.getElementById('leistung-list');
   if(!wrap)return;
   if(leistungen.length===0){
-    wrap.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px">Keine Positionen — + Position drücken</div>';
-  } else {
-    wrap.innerHTML='';
-    leistungen.forEach(l=>{
-      const div=document.createElement('div');
-      div.style.cssText='display:grid;grid-template-columns:52px 1fr 80px 26px;gap:6px;align-items:center;margin-bottom:4px';
-      div.innerHTML=`
-        <input class="finput" type="number" min="1" value="${l.qty}" placeholder="Stk" style="padding:7px 6px;font-size:13px" oninput="updL('${l.id}','qty',this.value)">
-        <input class="finput" value="${l.desc||''}" placeholder="Beschreibung" style="padding:7px 8px;font-size:13px" oninput="updL('${l.id}','desc',this.value)">
-        <input class="finput" type="number" min="0" step="0.01" value="${l.price}" placeholder="CHF" style="padding:7px 6px;font-size:13px" oninput="updL('${l.id}','price',this.value)">
-        <button onclick="removeLeistung('${l.id}')" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:18px;padding:0;line-height:1">×</button>`;
-      wrap.appendChild(div);
-    });
+    wrap.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">Keine Positionen — wähle aus Preisliste oder + Manuell</div>';
+    updateTotal(); return;
   }
+  wrap.innerHTML='';
+  leistungen.forEach(l=>{
+    const div=document.createElement('div');
+    div.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;margin-bottom:6px';
+    div.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:13px;font-weight:500">${l.desc||'—'}</span>
+        <button onclick="removeLeistung('${l.id}')" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0;line-height:1">×</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:0;border:1.5px solid var(--border);border-radius:var(--rs);overflow:hidden">
+          <button onclick="updLQty('${l.id}',-1)" style="background:var(--surface);border:none;color:var(--text);font-size:18px;padding:4px 12px;cursor:pointer;line-height:1">−</button>
+          <span style="padding:4px 14px;font-size:14px;font-weight:700;font-family:'DM Mono',monospace;border-left:1px solid var(--border);border-right:1px solid var(--border)">${l.qty}</span>
+          <button onclick="updLQty('${l.id}',1)" style="background:var(--surface);border:none;color:var(--text);font-size:18px;padding:4px 12px;cursor:pointer;line-height:1">+</button>
+        </div>
+        <span style="font-size:13px;color:var(--teal);font-family:'DM Mono',monospace">CHF ${((l.qty||0)*(l.price||0)).toFixed(2)}</span>
+      </div>`;
+    wrap.appendChild(div);
+  });
   updateTotal();
 }
 function updateTotal(){
@@ -1769,8 +1796,7 @@ window.deleteOrder=async()=>{if(!confirm('Auftrag wirklich löschen?'))return;aw
 window.openDetail=id=>{
   const o=orders.find(x=>x.id===id);if(!o)return;
   detailOrder=o;
-  const col=getOColor(o);
-  document.getElementById('d-color-dot').style.background=col;
+  document.getElementById('d-color-dot').style.background=getOColor(o);
   document.getElementById('d-title').textContent=o.title;
   const t=fmtTime(o);
   document.getElementById('d-time').textContent=o.date+(t?' · '+t:'');
@@ -1781,6 +1807,28 @@ window.openDetail=id=>{
   const pills=document.getElementById('d-pills');pills.innerHTML='';
   if(!o.persons?.length)pills.innerHTML='<span style="color:var(--muted);font-size:13px">Niemand zugewiesen</span>';
   else o.persons.forEach(pid=>{const p=persons.find(x=>x.id===pid);if(!p)return;pills.innerHTML+=`<div class="apill"><div class="pdot" style="background:${p.color}"></div>${p.name}</div>`;});
+
+  // Leistungen anzeigen
+  const uSec=document.getElementById('d-umsatz-sec');
+  const uCon=document.getElementById('d-umsatz-content');
+  if(o.leistungen&&o.leistungen.length>0){
+    uSec.style.display='block';
+    if(me.isAdmin){
+      uCon.innerHTML=o.leistungen.map(l=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span><strong>${l.qty}×</strong> ${l.desc}</span>
+          <span style="font-family:'DM Mono',monospace;color:var(--teal)">CHF ${((l.qty||0)*(l.price||0)).toFixed(2)}</span>
+        </div>`).join('')
+        +`<div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:8px 0;color:var(--teal)">
+          <span>Total</span><span>CHF ${(o.total||0).toFixed(2)}</span>
+        </div>`;
+    } else {
+      // User: zusammengefasste Notiz z.B. "1× Leistung A, 3× Leistung B"
+      const summary=o.leistungen.map(l=>`${l.qty}× ${l.desc}`).join(', ');
+      uCon.innerHTML=`<div style="font-size:13px;line-height:1.7;background:var(--surface2);border-radius:var(--rs);padding:10px 12px">${summary}</div>`;
+    }
+  } else { uSec.style.display='none'; }
+
   document.getElementById('d-edit-act').style.display=canEdit()?'flex':'none';
   document.getElementById('d-view-act').style.display=canEdit()?'none':'flex';
   document.getElementById('detail-modal').dataset.oid=id;
