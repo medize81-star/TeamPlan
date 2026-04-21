@@ -232,23 +232,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
   <div class="view-bar">
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-      <div class="toggle-group">
-        <button class="toggle-btn active" id="btn-month" onclick="setView('month')">📆 Monat</button>
-        <button class="toggle-btn" id="btn-week" onclick="setView('week')">📋 Woche</button>
-      </div>
-      <!-- Verwaltung Dropdown (nur Admin) -->
-      <div style="position:relative" id="verwaltung-wrap">
-        <button id="btn-verwaltung" onclick="toggleVerwaltung()" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;align-items:center;gap:5px">
-          ⚙ Verwaltung ▾
-        </button>
-        <div id="verwaltung-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;z-index:300;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
-          <button onclick="setView('admin');closeVerwaltung()" id="btn-admin" style="display:block;width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:11px 16px;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px">👥 Team / User</button>
-          <button onclick="setView('lager');closeVerwaltung()" id="btn-lager" style="display:block;width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:11px 16px;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px">📦 Lager</button>
-          <button onclick="setView('umsatz');closeVerwaltung()" id="btn-umsatz" style="display:block;width:100%;background:transparent;border:none;color:var(--text);padding:11px 16px;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px">💶 Umsatz & Preise</button>
+
+      <!-- KALENDER Hauptbutton + Unterbuttons -->
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="toggle-btn active" id="btn-kalender" onclick="if(view!=='month'&&view!=='week')setView('month')" style="font-weight:600">📅 Kalender</button>
+        <div class="toggle-group" id="cal-sub-btns">
+          <button class="toggle-btn active" id="btn-month" onclick="setView('month')">Monat</button>
+          <button class="toggle-btn" id="btn-week" onclick="setView('week')">Woche</button>
         </div>
       </div>
-      <!-- Lager auch für normale User sichtbar -->
-      <button class="toggle-btn" id="btn-lager-user" onclick="setView('lager')" style="display:none">📦 Lager</button>
+
+      <!-- TEAM (nur Admin) -->
+      <button class="toggle-btn" id="btn-admin" onclick="setView('admin')" style="display:none">👥 Team</button>
+
+      <!-- LAGER (alle User) -->
+      <button class="toggle-btn" id="btn-lager" onclick="setView('lager')" style="display:none">📦 Lager</button>
+
+      <!-- UMSATZ (nur Admin) -->
+      <button class="toggle-btn" id="btn-umsatz" onclick="setView('umsatz')" style="display:none">💶 Umsatz</button>
+
+      <!-- VERWALTUNG (nur Admin) -->
+      <button class="toggle-btn" id="btn-verwaltung" onclick="setView('verwaltung')" style="display:none">⚙ Verwaltung</button>
+
     </div>
     <div class="nav-arrows" id="nav-arrows">
       <button class="btn btn-ghost btn-sm" onclick="navPrev()">‹</button>
@@ -262,6 +267,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="admin-panel" id="admin-panel" style="display:none"></div>
   <div class="admin-panel" id="lager-panel" style="display:none"></div>
   <div class="admin-panel" id="umsatz-panel" style="display:none"></div>
+  <div class="admin-panel" id="verwaltung-panel" style="display:none"></div>
 </div>
 
 <!-- ADD / EDIT MODAL -->
@@ -684,13 +690,10 @@ function setupUI(){
   document.getElementById('admin-tag').style.display=me.isAdmin?'inline':'none';
   // + Auftrag Button: nur Admin oder canEdit
   document.getElementById('add-btn').style.display=canEditKalender()?'inline-block':'none';
-  // Verwaltung Dropdown: nur Admin
-  const vBtn=document.getElementById('btn-verwaltung');
-  if(vBtn) vBtn.style.display=me.isAdmin?'flex':'none';
-  // Lager Button für normale User
-  const lUserBtn=document.getElementById('btn-lager-user');
-  if(lUserBtn) lUserBtn.style.display=me.isAdmin?'none':'inline-block';
-  // Kalender als Startseite immer
+  document.getElementById('btn-admin').style.display=me.isAdmin?'inline-block':'none';
+  document.getElementById('btn-lager').style.display='inline-block';
+  document.getElementById('btn-umsatz').style.display=me.isAdmin?'inline-block':'none';
+  document.getElementById('btn-verwaltung').style.display=me.isAdmin?'inline-block':'none';
   if(view!=='month'&&view!=='week') view='month';
 }
 
@@ -713,7 +716,7 @@ window.setView=v=>{
   renderAll();
 };
 
-function renderAll(){if(view==='month'||view==='week')renderLegend();if(view==='month')renderMonth();else if(view==='week')renderWeek();else if(view==='admin')renderAdmin();else if(view==='lager')renderLager();else if(view==='umsatz')renderUmsatz();}
+function renderAll(){if(view==='month'||view==='week')renderLegend();if(view==='month')renderMonth();else if(view==='week')renderWeek();else if(view==='admin')renderAdmin();else if(view==='lager')renderLager();else if(view==='umsatz')renderUmsatz();else if(view==='verwaltung')renderVerwaltung();}
 
 // Timezone-safe: gibt YYYY-MM-DD in lokaler Zeit zurück
 function dateStr(dt){
@@ -961,7 +964,7 @@ async function onDragEnd(e){
 
 // ADMIN
 function renderAdmin(){
-  let h=`<div class="ptitle">Team-Mitglieder</div><div class="plist">`;
+  let h=`<div class="ptitle">Berechtigungen & Stunden</div><div class="plist">`;
   persons.forEach(p=>{
     const canE=p.isAdmin||p.canEdit===true;
     const canEL=p.isAdmin||p.canEditLager===true;
@@ -976,36 +979,18 @@ function renderAdmin(){
       <div class="prow-actions">
         ${!p.isAdmin?`
           <div style="display:flex;flex-direction:column;gap:3px;margin-right:4px">
-            <span class="permission-badge ${canE?'perm-on':'perm-off'}" onclick="toggleEdit('${p.id}',${canE})" style="cursor:pointer;font-size:10px" title="Kalender bearbeiten">${canE?'📅 Kalender ✓':'📅 Kalender 🔒'}</span>
-            <span class="permission-badge ${canEL?'perm-on':'perm-off'}" onclick="toggleLagerEdit('${p.id}',${canEL})" style="cursor:pointer;font-size:10px" title="Lager bearbeiten">${canEL?'📦 Lager ✓':'📦 Lager 🔒'}</span>
-          </div>
-        `:''}
+            <span class="permission-badge ${canE?'perm-on':'perm-off'}" onclick="toggleEdit('${p.id}',${canE})" style="cursor:pointer;font-size:10px">📅 ${canE?'Kalender ✓':'Kalender 🔒'}</span>
+            <span class="permission-badge ${canEL?'perm-on':'perm-off'}" onclick="toggleLagerEdit('${p.id}',${canEL})" style="cursor:pointer;font-size:10px">📦 ${canEL?'Lager ✓':'Lager 🔒'}</span>
+          </div>`:''}
         <button class="btn btn-ghost btn-sm" onclick="openHoursModal('${p.id}')" title="Stunden">🕐</button>
-        <button class="btn btn-ghost btn-sm" onclick="openEditUser('${p.id}')">✏️</button>
-        ${!p.isAdmin?`<button class="btn btn-ghost btn-sm" onclick="removePerson('${p.id}')">🗑</button>`:''}
       </div>
     </div>`;
   });
   h+=`</div>
-  <div class="section-divider"></div>
-  <div class="ptitle">Neue Person</div>
-  <div class="frow" style="max-width:480px;margin-bottom:10px">
-    <div class="fg"><label class="flabel">Name</label><input class="finput" id="new-name" placeholder="Vorname Nachname"></div>
-    <div class="fg"><label class="flabel">PIN (4 Ziffern)</label><input class="finput" id="new-pin" placeholder="z.B. 1234" maxlength="4" inputmode="numeric"></div>
-  </div>
-  <div class="fg" style="max-width:480px;margin-bottom:16px"><label class="flabel">Farbe</label>
-    <div class="color-picker-wrap">
-      <div class="color-palette" id="new-user-palette"></div>
-      <div class="color-custom-row">
-        <input type="color" class="color-native-input" id="new-user-color-native">
-        <input type="text" class="color-hex-input" id="new-user-color-hex" placeholder="#6c5ce7" maxlength="7">
-        <div class="color-preview" id="new-user-color-preview"></div>
-      </div>
-    </div>
-  </div>
-  <button class="btn btn-primary" onclick="addPerson()">Person hinzufügen</button>`;
+  <div style="margin-top:10px">
+    <button class="btn btn-ghost" onclick="setView('verwaltung')" style="width:100%;font-size:13px">⚙ Team-Listen verwalten → Verwaltung</button>
+  </div>`;
   document.getElementById('admin-panel').innerHTML=h;
-  buildPalette('new-user-palette','new-user-color-native','new-user-color-hex','new-user-color-preview','#6c5ce7',c=>userColor=c);
 }
 
 // ── STUNDEN ──
@@ -1519,12 +1504,14 @@ window.savePreislisteItem=async()=>{
   document.getElementById('pl-unit').value='';
   document.getElementById('pl-price').value='';
   showToast('Position hinzugefügt ✓');
+  if(view==='verwaltung') renderVerwaltung();
   renderPreislisteMgmt();
 };
 
 window.deletePreislisteItem=async(id)=>{
   await remove(ref(db,'preisliste/'+id));
   showToast('Gelöscht');
+  if(view==='verwaltung') renderVerwaltung();
   renderPreislisteMgmt();
 };
 
@@ -1589,6 +1576,200 @@ window.exportUmsatzPDF=()=>{
     ${inner}
     <script>window.onload=()=>window.print()<\/script></body></html>`);
   win.document.close();
+};
+
+// ── VERWALTUNG ──
+function renderVerwaltung(){
+  const panel=document.getElementById('verwaltung-panel');
+  const tab=panel.dataset.tab||'preisliste';
+
+  const tabs=[
+    {id:'preisliste', label:'💶 Preisliste'},
+    {id:'materialien', label:'📦 Materialien'},
+    {id:'lagerorte', label:'🏠 Lagerorte'},
+    {id:'team', label:'👥 Team-Listen'},
+    {id:'design', label:'🎨 Design'},
+  ];
+
+  let h=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+    ${tabs.map(t=>`<button onclick="setVerwaltungTab('${t.id}')"
+      style="padding:7px 14px;border-radius:20px;border:1.5px solid ${tab===t.id?'var(--accent)':'var(--border)'};
+      background:${tab===t.id?'rgba(108,92,231,.15)':'transparent'};
+      color:${tab===t.id?'var(--accent)':'var(--muted)'};
+      font-size:13px;font-weight:${tab===t.id?'600':'400'};cursor:pointer;font-family:'DM Sans',sans-serif">${t.label}</button>`).join('')}
+  </div>`;
+
+  if(tab==='preisliste'){
+    h+=`<div class="ptitle">Preisliste</div>`;
+    if(preislisteItems.length===0){
+      h+='<div style="color:var(--muted);font-size:13px;padding:8px 0">Noch keine Positionen</div>';
+    } else {
+      h+=preislisteItems.map(p=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;margin-bottom:6px">
+          <div>
+            <div style="font-size:14px;font-weight:500">${p.desc}</div>
+            <div style="font-size:12px;color:var(--muted)">${p.unit||'Stk'} · CHF ${parseFloat(p.price||0).toFixed(2)}</div>
+          </div>
+          <button onclick="deletePreislisteItem('${p.id}')" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:18px;padding:4px">×</button>
+        </div>`).join('');
+    }
+    h+=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:14px;margin-top:12px">
+      <div class="flabel">Neue Position</div>
+      <div style="display:grid;grid-template-columns:1fr 70px 80px;gap:8px;margin-top:8px">
+        <input class="finput" id="pl-desc" placeholder="Bezeichnung" style="font-size:13px;padding:9px 10px">
+        <input class="finput" id="pl-unit" placeholder="Einheit" style="font-size:13px;padding:9px 10px">
+        <input class="finput" type="number" id="pl-price" placeholder="CHF" min="0" step="0.01" style="font-size:13px;padding:9px 10px">
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:10px" onclick="savePreislisteItem()">+ Hinzufügen</button>
+    </div>`;
+
+  } else if(tab==='materialien'){
+    h+=`<div class="ptitle">Materialien (zentral)</div>`;
+    if(lagerMat.length===0){
+      h+='<div style="color:var(--muted);font-size:13px;padding:8px 0">Noch keine Materialien</div>';
+    } else {
+      h+=lagerMat.map(m=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;margin-bottom:6px">
+          <div>
+            <div style="font-size:14px;font-weight:500">${m.name}</div>
+            <div style="font-size:12px;color:var(--muted)">${m.unit||'Stk'} · Min: ${m.min||0}${m.notes?' · '+m.notes:''}</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="openMatModal('${m.id}')">✏️</button>
+            <button class="btn btn-ghost btn-sm" onclick="deleteMatItem2('${m.id}')">🗑</button>
+          </div>
+        </div>`).join('');
+    }
+    h+=`<button class="btn btn-primary" style="margin-top:8px" onclick="openMatModal()">+ Material hinzufügen</button>`;
+
+  } else if(tab==='lagerorte'){
+    const mainOrt=getMainOrt();
+    const allOrte=[mainOrt,...lagerOrte.filter(o=>!o.isMain)];
+    h+=`<div class="ptitle">Lagerorte</div>`;
+    h+=allOrte.map(o=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">${o.isMain?'🏠':'🚗'}</span>
+          <div>
+            <div style="font-size:14px;font-weight:500">${o.name}</div>
+            <div style="font-size:11px;color:var(--muted)">${o.isMain?'Hauptlager (fix)':'Sekundärlager'}</div>
+          </div>
+        </div>
+        ${!o.isMain?`<button class="btn btn-ghost btn-sm" onclick="deleteLagerOrt('${o.id}')">🗑</button>`:''}
+      </div>`).join('');
+    h+=`<button class="btn btn-primary" style="margin-top:8px" onclick="openOrtModal()">+ Lagerort hinzufügen</button>`;
+
+  } else if(tab==='team'){
+    h+=`<div class="ptitle">Team-Mitglieder</div>`;
+    h+=persons.map(p=>`
+      <div class="prow" style="margin-bottom:6px">
+        <div class="prow-l">
+          <div class="pswatch" style="background:${p.color}">${p.name[0].toUpperCase()}</div>
+          <div>
+            <div class="pname">${p.name}${p.isAdmin?' <span style="font-size:10px;color:var(--accent)">(Admin)</span>':''}</div>
+            <div class="ppin">PIN: ${p.pin}</div>
+          </div>
+        </div>
+        <div class="prow-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openEditUser('${p.id}')">✏️</button>
+          ${!p.isAdmin?`<button class="btn btn-ghost btn-sm" onclick="removePerson('${p.id}')">🗑</button>`:''}
+        </div>
+      </div>`).join('');
+    h+=`<div class="section-divider"></div>
+    <div class="ptitle">Neue Person</div>
+    <div class="frow" style="max-width:480px;margin-bottom:10px">
+      <div class="fg"><label class="flabel">Name</label><input class="finput" id="new-name" placeholder="Vorname Nachname"></div>
+      <div class="fg"><label class="flabel">PIN (4 Ziffern)</label><input class="finput" id="new-pin" placeholder="z.B. 1234" maxlength="4" inputmode="numeric"></div>
+    </div>
+    <div class="fg" style="max-width:480px;margin-bottom:14px"><label class="flabel">Farbe</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="cpicker-v">${['#6c5ce7','#00cec9','#fd79a8','#fdcb6e','#55efc4','#74b9ff','#a29bfe','#fab1a0','#00b894','#e84393','#e17055','#0984e3','#2d3436','#b2bec3','#d63031','#6ab04c'].map(c=>`<div style="width:28px;height:28px;border-radius:50%;background:${c};cursor:pointer;border:3px solid transparent" class="copt-v" data-c="${c}" onclick="selColV(this)"></div>`).join('')}</div>
+    </div>
+    <button class="btn btn-primary" onclick="addPerson()">Person hinzufügen</button>`;
+    setTimeout(()=>{const f=document.querySelector('.copt-v');if(f){f.style.borderColor='#fff';userColor=f.dataset.c;}},40);
+
+  } else if(tab==='design'){
+    const cur=localStorage.getItem('pg_theme')||'dark';
+    const themes=[
+      {
+        id:'dark',
+        label:'🌑 Dark',
+        desc:'Standard dunkel — professionell',
+        vars:{'--bg':'#0a0a0f','--surface':'#13131a','--surface2':'#1c1c26','--border':'#28283a','--text':'#f0f0f8','--muted':'#5a5a72','--accent':'#6c5ce7','--teal':'#00cec9'}
+      },
+      {
+        id:'midnight',
+        label:'🔵 Midnight Blue',
+        desc:'Tiefes Blau — ruhig & fokussiert',
+        vars:{'--bg':'#050d1a','--surface':'#0d1b2e','--surface2':'#162438','--border':'#1e3352','--text':'#e8f0ff','--muted':'#4a6080','--accent':'#3b82f6','--teal':'#06b6d4'}
+      },
+      {
+        id:'forest',
+        label:'🌿 Forest',
+        desc:'Dunkelgrün — natürlich & entspannt',
+        vars:{'--bg':'#070f0a','--surface':'#0e1a12','--surface2':'#162419','--border':'#1e3326','--text':'#e8f5ee','--muted':'#4a7055','--accent':'#22c55e','--teal':'#10b981'}
+      },
+    ];
+    h+=`<div class="ptitle">Farbthema wählen</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${themes.map(t=>`
+        <div onclick="applyTheme('${t.id}')" style="background:var(--surface);border:2px solid ${cur===t.id?'var(--accent)':'var(--border)'};border-radius:14px;padding:14px 16px;cursor:pointer;transition:border-color .2s">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div>
+              <div style="font-size:15px;font-weight:600">${t.label}</div>
+              <div style="font-size:12px;color:var(--muted)">${t.desc}</div>
+            </div>
+            ${cur===t.id?'<span style="background:var(--accent);color:#fff;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600">Aktiv</span>':''}
+          </div>
+          <!-- Farbvorschau -->
+          <div style="display:flex;gap:4px;height:20px;border-radius:6px;overflow:hidden">
+            ${Object.values(t.vars).map(c=>`<div style="flex:1;background:${c}"></div>`).join('')}
+          </div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  panel.innerHTML=h;
+}
+
+// ── DESIGN THEMEN ──
+const THEMES={
+  dark:{'--bg':'#0a0a0f','--surface':'#13131a','--surface2':'#1c1c26','--border':'#28283a','--text':'#f0f0f8','--muted':'#5a5a72','--accent':'#6c5ce7','--teal':'#00cec9','--danger':'#e17055','--green':'#00b894'},
+  midnight:{'--bg':'#050d1a','--surface':'#0d1b2e','--surface2':'#162438','--border':'#1e3352','--text':'#e8f0ff','--muted':'#4a6080','--accent':'#3b82f6','--teal':'#06b6d4','--danger':'#ef4444','--green':'#10b981'},
+  forest:{'--bg':'#070f0a','--surface':'#0e1a12','--surface2':'#162419','--border':'#1e3326','--text':'#e8f5ee','--muted':'#4a7055','--accent':'#22c55e','--teal':'#10b981','--danger':'#ef4444','--green':'#86efac'},
+};
+window.applyTheme=id=>{
+  const t=THEMES[id];if(!t)return;
+  Object.entries(t).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+  localStorage.setItem('pg_theme',id);
+  if(view==='verwaltung') renderVerwaltung();
+  showToast('Design geändert ✓');
+};
+function loadTheme(){
+  const id=localStorage.getItem('pg_theme')||'dark';
+  if(THEMES[id]) Object.entries(THEMES[id]).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+}
+loadTheme();
+
+window.setVerwaltungTab=tab=>{
+  document.getElementById('verwaltung-panel').dataset.tab=tab;
+  renderVerwaltung();
+};
+
+window.selColV=el=>{
+  document.querySelectorAll('.copt-v').forEach(e=>e.style.borderColor='transparent');
+  el.style.borderColor='#fff'; userColor=el.dataset.c;
+};
+
+window.deleteMatItem2=async id=>{
+  if(!confirm('Material löschen?'))return;
+  await remove(ref(db,'lagerMat/'+id));
+  showToast('Gelöscht');
+};
+
+window.deleteLagerOrt=async id=>{
+  if(!confirm('Lagerort löschen? Alle Bestände dieses Lagerorts gehen verloren.'))return;
+  await remove(ref(db,'lagerOrte/'+id));
+  showToast('Lagerort gelöscht');
 };
 
 window.toggleEdit=async(id,currentlyCanEdit)=>{
