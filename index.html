@@ -238,6 +238,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
       <button class="toggle-btn" id="btn-admin" onclick="setView('admin')" style="display:none">👥 Team</button>
       <button class="toggle-btn" id="btn-lager" onclick="setView('lager')" style="display:none">📦 Lager</button>
+      <button class="toggle-btn" id="btn-umsatz" onclick="setView('umsatz')" style="display:none">💶 Umsatz</button>
     </div>
     <div class="nav-arrows" id="nav-arrows">
       <button class="btn btn-ghost btn-sm" onclick="navPrev()">‹</button>
@@ -250,6 +251,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="cal-wrap" id="cal-wrap"></div>
   <div class="admin-panel" id="admin-panel" style="display:none"></div>
   <div class="admin-panel" id="lager-panel" style="display:none"></div>
+  <div class="admin-panel" id="umsatz-panel" style="display:none"></div>
 </div>
 
 <!-- ADD / EDIT MODAL -->
@@ -258,11 +260,53 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="mhandle"></div>
     <div class="mtitle" id="modal-title">Neuer Auftrag</div>
     <div class="fg"><label class="flabel">Titel</label><input class="finput" id="f-title" placeholder="z.B. Baustelle Hauptstraße"></div>
-    <div class="fg"><label class="flabel">Datum</label><input class="finput" id="f-date" type="date"></div>
-    <div class="frow">
-      <div class="fg"><label class="flabel">Von</label><input class="finput" id="f-time-start" type="time"></div>
-      <div class="fg"><label class="flabel">Bis</label><input class="finput" id="f-time-end" type="time"></div>
+
+    <!-- DATUM VON-BIS -->
+    <div class="fg">
+      <label class="flabel">Datum</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <button type="button" onclick="setDateMode('single')" id="dmode-single" style="flex:1;padding:8px;border-radius:var(--rs);border:1.5px solid var(--accent);background:rgba(108,92,231,.15);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer">Einzeltag</button>
+        <button type="button" onclick="setDateMode('range')" id="dmode-range" style="flex:1;padding:8px;border-radius:var(--rs);border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer">Mehrere Tage</button>
+      </div>
+      <input class="finput" id="f-date" type="date" placeholder="Datum">
+      <div id="date-range-end" style="display:none;margin-top:8px">
+        <label class="flabel">Bis Datum</label>
+        <input class="finput" id="f-date-end" type="date">
+      </div>
     </div>
+
+    <!-- UHRZEIT -->
+    <div class="frow">
+      <div class="fg"><label class="flabel">Von (Uhrzeit)</label>
+        <div style="display:flex;gap:6px">
+          <select class="finput" id="f-time-start-h" style="flex:1">
+            <option value="">Std</option>
+            <option>06</option><option>07</option><option>08</option><option>09</option><option>10</option>
+            <option>11</option><option>12</option><option>13</option><option>14</option><option>15</option>
+            <option>16</option><option>17</option><option>18</option><option>19</option><option>20</option>
+          </select>
+          <select class="finput" id="f-time-start-m" style="flex:1">
+            <option value="">Min</option>
+            <option>00</option><option>15</option><option>30</option><option>45</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label class="flabel">Bis (Uhrzeit)</label>
+        <div style="display:flex;gap:6px">
+          <select class="finput" id="f-time-end-h" style="flex:1">
+            <option value="">Std</option>
+            <option>07</option><option>08</option><option>09</option><option>10</option><option>11</option>
+            <option>12</option><option>13</option><option>14</option><option>15</option><option>16</option>
+            <option>17</option><option>18</option><option>19</option><option>20</option><option>21</option><option>22</option>
+          </select>
+          <select class="finput" id="f-time-end-m" style="flex:1">
+            <option value="">Min</option>
+            <option>00</option><option>15</option><option>30</option><option>45</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
     <div class="fg"><label class="flabel">Farbe des Auftrags</label>
       <div class="color-picker-wrap">
         <div class="color-palette" id="order-palette"></div>
@@ -276,6 +320,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="fg"><label class="flabel">Adresse</label><input class="finput" id="f-address" placeholder="Straße, Ort"></div>
     <div class="fg"><label class="flabel">Hinweise</label><textarea class="ftextarea" id="f-notes" placeholder="Was ist zu tun?"></textarea></div>
     <div class="fg"><label class="flabel">Personen zuweisen</label><div class="pchecks" id="pchecks"></div></div>
+
+    <!-- LEISTUNGSPOSITIONEN / UMSATZ -->
+    <div class="fg">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label class="flabel" style="margin:0">💶 Leistungspositionen</label>
+        <button type="button" onclick="addLeistung()" style="background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:20px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">+ Position</button>
+      </div>
+      <div id="leistung-list" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--muted)">Total: </span>
+        <span id="leistung-total" style="font-size:14px;font-weight:700;color:var(--teal);margin-left:8px">CHF 0.00</span>
+      </div>
+    </div>
+
     <div class="mactions">
       <button class="btn btn-ghost" onclick="closeModal('add-modal')">Abbrechen</button>
       <button class="btn btn-danger btn-sm" id="delete-btn" style="display:none" onclick="deleteOrder()">Löschen</button>
@@ -302,8 +360,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="dsec" id="d-notes-sec"><div class="dsec-label">📋 Hinweise</div><div class="dsec-val" id="d-notes" style="white-space:pre-line">—</div></div>
     <div class="dsec"><div class="dsec-label">👤 Zugewiesen an</div><div class="apills" id="d-pills"></div></div>
     <button class="cal-btn" onclick="exportToCalendar()">📅 In Handykalender speichern</button>
+    <div class="dsec" id="d-umsatz-sec">
+      <div class="dsec-label">💶 Leistungen</div>
+      <div id="d-umsatz-content"></div>
+    </div>
     <div class="mactions" id="d-edit-act" style="display:none">
       <button class="btn btn-ghost" onclick="closeModal('detail-modal')">Schließen</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyOrder()" title="Kopieren">📋 Kopieren</button>
       <button class="btn btn-primary btn-sm" onclick="editFromDetail()">Bearbeiten</button>
     </div>
     <div class="mactions" id="d-view-act" style="display:none">
@@ -367,23 +430,71 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
-<!-- LAGER ITEM MODAL -->
-<div class="modal-overlay" id="lager-modal">
+<!-- MATERIAL MODAL -->
+<div class="modal-overlay" id="mat-modal">
   <div class="modal">
     <div class="mhandle"></div>
-    <div class="mtitle" id="lager-modal-title">Neues Material</div>
-    <input type="hidden" id="lager-edit-id">
-    <div class="fg"><label class="flabel">Bezeichnung</label><input class="finput" id="lager-name" placeholder="z.B. Silikon transparent"></div>
+    <div class="mtitle" id="mat-modal-title">Neues Material</div>
+    <input type="hidden" id="mat-edit-id">
+    <div class="fg"><label class="flabel">Bezeichnung</label><input class="finput" id="mat-name" placeholder="z.B. Silikon transparent 310ml"></div>
     <div class="frow">
-      <div class="fg"><label class="flabel">Bestand</label><input class="finput" id="lager-qty" type="number" min="0" placeholder="z.B. 24"></div>
-      <div class="fg"><label class="flabel">Einheit</label><input class="finput" id="lager-unit" placeholder="z.B. Stk, m², Rollen"></div>
+      <div class="fg"><label class="flabel">Einheit</label><input class="finput" id="mat-unit" placeholder="z.B. Stk, m², Rollen"></div>
+      <div class="fg"><label class="flabel">Mindestbestand ⚠</label><input class="finput" id="mat-min" type="number" min="0" placeholder="z.B. 5"></div>
     </div>
-    <div class="fg"><label class="flabel">Mindestbestand (Warnung)</label><input class="finput" id="lager-min" type="number" min="0" placeholder="z.B. 5"></div>
-    <div class="fg"><label class="flabel">Hinweise</label><input class="finput" id="lager-notes" placeholder="Lieferant, Bestellnummer..."></div>
+    <div class="fg"><label class="flabel">Hinweise (Lieferant, Art.Nr.)</label><input class="finput" id="mat-notes" placeholder="z.B. Würth Art. 12345"></div>
+    <div class="fg"><label class="flabel">Anfangsbestand Hauptlager</label><input class="finput" id="mat-init-qty" type="number" min="0" placeholder="z.B. 20" value="0"></div>
     <div class="mactions">
-      <button class="btn btn-ghost" onclick="closeModal('lager-modal')">Abbrechen</button>
-      <button class="btn btn-danger btn-sm" id="lager-delete-btn" style="display:none" onclick="deleteLagerItem()">Löschen</button>
-      <button class="btn btn-primary" onclick="saveLagerItem()">Speichern</button>
+      <button class="btn btn-ghost" onclick="closeModal('mat-modal')">Abbrechen</button>
+      <button class="btn btn-danger btn-sm" id="mat-delete-btn" style="display:none" onclick="deleteMatItem()">Löschen</button>
+      <button class="btn btn-primary" onclick="saveMatItem()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- LAGERORT MODAL -->
+<div class="modal-overlay" id="ort-modal">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">Neuer Lagerort</div>
+    <div class="fg"><label class="flabel">Name des Lagerorts</label><input class="finput" id="ort-name" placeholder="z.B. Auto 1, Baustelle X"></div>
+    <div class="mactions">
+      <button class="btn btn-ghost" onclick="closeModal('ort-modal')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveOrtItem()">Erstellen</button>
+    </div>
+  </div>
+</div>
+
+<!-- UMBUCHUNG MODAL (Hauptlager → Sekundärlager) -->
+<div class="modal-overlay" id="umbuch-modal">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">Material einlagern</div>
+    <div id="umbuch-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;margin-bottom:14px;font-size:13px"></div>
+    <input type="hidden" id="umbuch-mat-id">
+    <input type="hidden" id="umbuch-ort-id">
+    <div class="fg"><label class="flabel">Menge vom Hauptlager einlagern</label>
+      <input class="finput" id="umbuch-qty" type="number" min="1" placeholder="z.B. 5" value="1">
+    </div>
+    <div class="mactions">
+      <button class="btn btn-ghost" onclick="closeModal('umbuch-modal')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="doUmbuchung()">✓ Einlagern</button>
+    </div>
+  </div>
+</div>
+
+<!-- EINGANG MODAL (Nachbestellung Hauptlager) -->
+<div class="modal-overlay" id="zubuch-modal">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">Eingang Hauptlager</div>
+    <div id="zubuch-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;margin-bottom:14px;font-size:13px"></div>
+    <input type="hidden" id="zubuch-mat-id">
+    <div class="fg"><label class="flabel">Menge eingebucht</label>
+      <input class="finput" id="zubuch-qty" type="number" min="1" placeholder="z.B. 24" value="1">
+    </div>
+    <div class="mactions">
+      <button class="btn btn-ghost" onclick="closeModal('zubuch-modal')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="doZubuchung()">✓ Einbuchen</button>
     </div>
   </div>
 </div>
@@ -521,6 +632,7 @@ function setupUI(){
   document.getElementById('btn-admin').style.display=me.isAdmin?'inline-block':'none';
   // Lager: alle User sehen es
   document.getElementById('btn-lager').style.display='inline-block';
+  document.getElementById('btn-umsatz').style.display=me.isAdmin?'inline-block':'none';
   // Kalender als Startseite immer
   if(view!=='month'&&view!=='week') view='month';
 }
@@ -531,16 +643,17 @@ window.setView=v=>{
   // Toggle-Buttons Monat/Woche
   ['month','week'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
   // Admin/Lager Buttons
-  ['admin','lager'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
+  ['admin','lager','umsatz'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
   document.getElementById('nav-arrows').style.display=isCal?'flex':'none';
   document.getElementById('cal-wrap').style.display=isCal?'block':'none';
   document.getElementById('admin-panel').style.display=v==='admin'?'block':'none';
   document.getElementById('lager-panel').style.display=v==='lager'?'block':'none';
+  document.getElementById('umsatz-panel').style.display=v==='umsatz'?'block':'none';
   document.getElementById('legend').style.display=isCal?'flex':'none';
   renderAll();
 };
 
-function renderAll(){if(view==='month'||view==='week')renderLegend();if(view==='month')renderMonth();else if(view==='week')renderWeek();else if(view==='admin')renderAdmin();else if(view==='lager')renderLager();}
+function renderAll(){if(view==='month'||view==='week')renderLegend();if(view==='month')renderMonth();else if(view==='week')renderWeek();else if(view==='admin')renderAdmin();else if(view==='lager')renderLager();else if(view==='umsatz')renderUmsatz();}
 
 function renderLegend(){
   const list=me.isAdmin?persons:persons.filter(p=>p.id===me.id);
@@ -548,7 +661,14 @@ function renderLegend(){
 }
 
 function getOColor(o){return o.color||orderColor||'#6c5ce7';}
-function fmtTime(o){const s=o.timeStart||o.time||'';if(!s)return '';return s+(o.timeEnd?' – '+o.timeEnd:'')+' Uhr';}
+function fmtTime(o){
+  let dateStr='';
+  if(o.dateEnd&&o.dateEnd!==o.date) dateStr=o.date+' – '+o.dateEnd;
+  const s=o.timeStart||o.time||'';
+  const tStr=s?(s+(o.timeEnd?' – '+o.timeEnd:'')+' Uhr'):'';
+  if(dateStr&&tStr) return dateStr+' · '+tStr;
+  return dateStr||tStr;
+}
 
 function renderMonth(){
   const y=curDate.getFullYear(),m=curDate.getMonth();
@@ -563,7 +683,11 @@ function renderMonth(){
 }
 function mday(dt,other,isToday=false){
   const ds=dt.toISOString().slice(0,10),ords=dayOrders(ds);
-  let chips=ords.slice(0,3).map(o=>`<div class="chip" style="background:${getOColor(o)}" onclick="event.stopPropagation();openDetail('${o.id}')">${o.timeStart||o.time?((o.timeStart||o.time)+' '):''}${o.title}</div>`).join('');
+  let chips=ords.slice(0,3).map(o=>{
+    const t=o.timeStart||o.time?((o.timeStart||o.time)+' '):'';
+    const multi=o.dateEnd&&o.dateEnd!==o.date?'↔ ':'';
+    return `<div class="chip" style="background:${getOColor(o)}" onclick="event.stopPropagation();openDetail('${o.id}')">${multi}${t}${o.title}</div>`;
+  }).join('');
   if(ords.length>3)chips+=`<div style="font-size:9px;color:var(--muted);padding:1px 4px">+${ords.length-3}</div>`;
   // Klick auf Tag → Wochenansicht dieser Woche
   return `<div class="mday${other?' other':''}${isToday?' today':''}" onclick="jumpToWeek('${ds}',event)"><div class="dnum">${dt.getDate()}</div><div class="dchips">${chips}</div></div>`;
@@ -924,98 +1048,385 @@ window.exportHoursPDF=()=>{
   win.document.close();
 };
 
-// ── LAGER ──
-let lagerItems=[];
-onValue(ref(db,'lager'),s=>{
-  lagerItems=[];
-  if(s.exists()) Object.keys(s.val()).forEach(k=>lagerItems.push({id:k,...s.val()[k]}));
+// ── LAGER-SYSTEM ──
+let lagerMat=[], lagerOrte=[], lagerBestand={}, lagerItems=[];
+
+onValue(ref(db,'lagerMat'),s=>{
+  lagerMat=[];
+  if(s.exists()) Object.keys(s.val()).forEach(k=>lagerMat.push({id:k,...s.val()[k]}));
+  if(me&&view==='lager') renderLager();
+});
+onValue(ref(db,'lagerOrte'),s=>{
+  lagerOrte=[];
+  if(s.exists()) Object.keys(s.val()).forEach(k=>lagerOrte.push({id:k,...s.val()[k]}));
+  if(me&&view==='lager') renderLager();
+});
+onValue(ref(db,'lagerBestand'),s=>{
+  lagerBestand={};
+  if(s.exists()) Object.assign(lagerBestand, s.val());
   if(me&&view==='lager') renderLager();
 });
 
+function getBestand(matId, ortId){ return lagerBestand[matId+'_'+ortId]||0; }
+function getMainOrt(){ return lagerOrte.find(o=>o.isMain)||{id:'hauptlager',name:'Hauptlager',isMain:true}; }
+
 function renderLager(){
   const isAdmin=me&&(me.isAdmin||me.canEditLager===true);
-  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+  const panel=document.getElementById('lager-panel');
+  const selOrt=panel.dataset.ort||'all';
+
+  // Hauptlager sicherstellen
+  const mainOrt=getMainOrt();
+  const allOrte=[mainOrt,...lagerOrte.filter(o=>!o.isMain)];
+
+  let h=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
     <div class="ptitle" style="margin:0">Lagerbestand</div>
-    ${isAdmin?'<button class="btn btn-primary btn-sm" onclick="openLagerModal()">+ Material</button>':''}
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      ${isAdmin?'<button class="btn btn-ghost btn-sm" onclick="openOrtModal()">+ Lagerort</button>':''}
+      ${isAdmin?'<button class="btn btn-primary btn-sm" onclick="openMatModal()">+ Material</button>':''}
+    </div>
   </div>`;
 
-  if(lagerItems.length===0){
-    h+='<div style="color:var(--muted);text-align:center;padding:32px">Noch keine Materialien eingetragen</div>';
+  // Lagerort-Tabs
+  h+=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;overflow-x:auto;padding-bottom:4px">
+    <button onclick="setLagerOrt('all')" style="padding:6px 14px;border-radius:20px;white-space:nowrap;border:1.5px solid ${selOrt==='all'?'var(--accent)':'var(--border)'};background:${selOrt==='all'?'rgba(108,92,231,.15)':'transparent'};color:${selOrt==='all'?'var(--accent)':'var(--muted)'};font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">📦 Alle</button>
+    ${allOrte.map(o=>`<button onclick="setLagerOrt('${o.id}')" style="padding:6px 14px;border-radius:20px;white-space:nowrap;border:1.5px solid ${selOrt===o.id?'var(--accent)':'var(--border)'};background:${selOrt===o.id?'rgba(108,92,231,.15)':'transparent'};color:${selOrt===o.id?'var(--accent)':'var(--muted)'};font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">${o.isMain?'🏠 ':' '}${o.name}</button>`).join('')}
+  </div>`;
+
+  if(lagerMat.length===0){
+    h+='<div style="color:var(--muted);text-align:center;padding:32px">Noch keine Materialien — Admin kann + Material hinzufügen</div>';
   } else {
     h+='<div style="display:flex;flex-direction:column;gap:8px">';
-    lagerItems.forEach(item=>{
-      const low=item.min&&item.qty<=item.min;
-      h+=`<div style="background:var(--surface);border:1px solid ${low?'var(--danger)':'var(--border)'};border-radius:12px;padding:12px 16px">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div style="font-size:14px;font-weight:600">${item.name}${low?' <span style="color:var(--danger);font-size:11px">⚠ Nachbestellen!</span>':''}</div>
-            ${item.notes?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${item.notes}</div>`:''}
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="text-align:right">
-              <div style="font-size:20px;font-weight:700;color:${low?'var(--danger)':'var(--teal)'}">${item.qty}</div>
-              <div style="font-size:11px;color:var(--muted)">${item.unit||'Stk'}</div>
+    lagerMat.forEach(mat=>{
+      if(selOrt==='all'){
+        // Zeige alle Lagerorte für dieses Material
+        const totalQty=allOrte.reduce((s,o)=>s+getBestand(mat.id,o.id),0);
+        const low=mat.min&&totalQty<=mat.min;
+        h+=`<div style="background:var(--surface);border:1px solid ${low?'var(--danger)':'var(--border)'};border-radius:12px;padding:12px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div>
+              <div style="font-size:14px;font-weight:600">${mat.name}${low?' <span style="color:var(--danger);font-size:11px">⚠</span>':''}</div>
+              ${mat.notes?`<div style="font-size:12px;color:var(--muted)">${mat.notes}</div>`:''}
             </div>
-            ${isAdmin?`<div style="display:flex;flex-direction:column;gap:4px">
-              <button class="btn btn-ghost btn-sm" onclick="openLagerModal('${item.id}')">✏️</button>
-              <button class="btn btn-ghost btn-sm" onclick="adjustQty('${item.id}',1)" style="color:var(--green)">+</button>
-              <button class="btn btn-ghost btn-sm" onclick="adjustQty('${item.id}',-1)" style="color:var(--danger)">−</button>
-            </div>`:''}
+            <div style="text-align:right">
+              <div style="font-size:18px;font-weight:700;color:${low?'var(--danger)':'var(--teal)'}">${totalQty} <span style="font-size:11px;color:var(--muted)">${mat.unit||'Stk'}</span></div>
+              <div style="font-size:10px;color:var(--muted)">gesamt</div>
+            </div>
           </div>
-        </div>
-      </div>`;
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${allOrte.map(o=>{
+              const qty=getBestand(mat.id,o.id);
+              return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:6px">
+                <span style="color:var(--muted)">${o.name}:</span>
+                <span style="font-weight:600">${qty}</span>
+                ${isAdmin&&!o.isMain?`<button onclick="openUmbuchModal('${mat.id}','${o.id}')" style="background:transparent;border:none;color:var(--accent);cursor:pointer;font-size:11px;padding:0" title="Umbuchen">⇄</button>`:''}
+              </div>`;
+            }).join('')}
+          </div>
+          ${isAdmin?`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="openMatModal('${mat.id}')">✏️</button>
+            <button class="btn btn-ghost btn-sm" onclick="openZubuchModal('${mat.id}')" style="color:var(--green);font-size:12px">+ Eingang Hauptlager</button>
+          </div>`:''}
+        </div>`;
+      } else {
+        // Einzelner Lagerort
+        const ort=allOrte.find(o=>o.id===selOrt)||mainOrt;
+        const qty=getBestand(mat.id,selOrt);
+        const low=mat.min&&qty<=mat.min;
+        h+=`<div style="background:var(--surface);border:1px solid ${low?'var(--danger)':'var(--border)'};border-radius:12px;padding:12px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:14px;font-weight:600">${mat.name}${low?' <span style="color:var(--danger);font-size:11px">⚠ Nachbestellen!</span>':''}</div>
+              ${mat.notes?`<div style="font-size:12px;color:var(--muted)">${mat.notes}</div>`:''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="text-align:right">
+                <div style="font-size:20px;font-weight:700;color:${low?'var(--danger)':'var(--teal)'}">${qty}</div>
+                <div style="font-size:11px;color:var(--muted)">${mat.unit||'Stk'}</div>
+              </div>
+              ${isAdmin?`<div style="display:flex;flex-direction:column;gap:4px">
+                ${!ort.isMain?`<button class="btn btn-ghost btn-sm" onclick="openUmbuchModal('${mat.id}','${selOrt}')" title="Einlagern aus Hauptlager" style="font-size:11px">⇄ Einlagern</button>`:''}
+                <button class="btn btn-ghost btn-sm" onclick="adjustBestand('${mat.id}','${selOrt}',1)" style="color:var(--green)">+</button>
+                <button class="btn btn-ghost btn-sm" onclick="adjustBestand('${mat.id}','${selOrt}',-1)" style="color:var(--danger)">−</button>
+              </div>`:''}
+            </div>
+          </div>
+        </div>`;
+      }
     });
     h+='</div>';
   }
   document.getElementById('lager-panel').innerHTML=h;
 }
 
-window.openLagerModal=(id=null)=>{
-  document.getElementById('lager-modal-title').textContent=id?'Material bearbeiten':'Neues Material';
-  document.getElementById('lager-edit-id').value=id||'';
-  document.getElementById('lager-delete-btn').style.display=id?'inline-block':'none';
+// ── NEUES LAGER JS ──
+window.setLagerOrt=ort=>{
+  document.getElementById('lager-panel').dataset.ort=ort;
+  renderLager();
+};
+
+// Material Modal
+window.openMatModal=(id=null)=>{
+  document.getElementById('mat-modal-title').textContent=id?'Material bearbeiten':'Neues Material';
+  document.getElementById('mat-edit-id').value=id||'';
+  document.getElementById('mat-delete-btn').style.display=id?'inline-block':'none';
   if(id){
-    const item=lagerItems.find(x=>x.id===id);
-    document.getElementById('lager-name').value=item.name||'';
-    document.getElementById('lager-qty').value=item.qty||0;
-    document.getElementById('lager-unit').value=item.unit||'';
-    document.getElementById('lager-min').value=item.min||'';
-    document.getElementById('lager-notes').value=item.notes||'';
+    const m=lagerMat.find(x=>x.id===id);
+    document.getElementById('mat-name').value=m.name||'';
+    document.getElementById('mat-unit').value=m.unit||'';
+    document.getElementById('mat-min').value=m.min||'';
+    document.getElementById('mat-notes').value=m.notes||'';
+    document.getElementById('mat-init-qty').value='';
+    document.getElementById('mat-init-qty').placeholder='Bestand nicht ändern';
   } else {
-    ['lager-name','lager-unit','lager-notes'].forEach(i=>document.getElementById(i).value='');
-    document.getElementById('lager-qty').value=0;
-    document.getElementById('lager-min').value='';
+    ['mat-name','mat-unit','mat-notes'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('mat-min').value='';
+    document.getElementById('mat-init-qty').value='0';
   }
-  document.getElementById('lager-modal').classList.add('open');
+  document.getElementById('mat-modal').classList.add('open');
 };
-
-window.saveLagerItem=async()=>{
-  const id=document.getElementById('lager-edit-id').value;
-  const name=document.getElementById('lager-name').value.trim();
+window.saveMatItem=async()=>{
+  const id=document.getElementById('mat-edit-id').value;
+  const name=document.getElementById('mat-name').value.trim();
   if(!name){showToast('Bitte Bezeichnung eingeben');return;}
-  const item={
+  const mat={
     name,
-    qty:parseInt(document.getElementById('lager-qty').value)||0,
-    unit:document.getElementById('lager-unit').value.trim()||'Stk',
-    min:parseInt(document.getElementById('lager-min').value)||0,
-    notes:document.getElementById('lager-notes').value.trim()
+    unit:document.getElementById('mat-unit').value.trim()||'Stk',
+    min:parseInt(document.getElementById('mat-min').value)||0,
+    notes:document.getElementById('mat-notes').value.trim()
   };
-  if(id) await update(ref(db,'lager/'+id),item);
-  else await set(push(ref(db,'lager')),item);
-  closeModal('lager-modal');showToast('Gespeichert ✓');
+  let matId=id;
+  if(id){
+    await update(ref(db,'lagerMat/'+id),mat);
+  } else {
+    const r=await push(ref(db,'lagerMat'),mat);
+    matId=r.key;
+    // Anfangsbestand ins Hauptlager
+    const initQty=parseInt(document.getElementById('mat-init-qty').value)||0;
+    if(initQty>0){
+      const mainOrt=getMainOrt();
+      await set(ref(db,'lagerBestand/'+matId+'_'+mainOrt.id),initQty);
+    }
+  }
+  closeModal('mat-modal');showToast('Material gespeichert ✓');
 };
-
-window.deleteLagerItem=async()=>{
-  const id=document.getElementById('lager-edit-id').value;
+window.deleteMatItem=async()=>{
+  const id=document.getElementById('mat-edit-id').value;
   if(!confirm('Material wirklich löschen?'))return;
-  await remove(ref(db,'lager/'+id));
-  closeModal('lager-modal');showToast('Gelöscht');
+  await remove(ref(db,'lagerMat/'+id));
+  closeModal('mat-modal');showToast('Gelöscht');
 };
 
-window.adjustQty=async(id,delta)=>{
-  const item=lagerItems.find(x=>x.id===id);if(!item)return;
-  const newQty=Math.max(0,item.qty+delta);
-  await update(ref(db,'lager/'+id),{qty:newQty});
+// Lagerort Modal
+window.openOrtModal=()=>{
+  document.getElementById('ort-name').value='';
+  document.getElementById('ort-modal').classList.add('open');
+};
+window.saveOrtItem=async()=>{
+  const name=document.getElementById('ort-name').value.trim();
+  if(!name){showToast('Bitte Namen eingeben');return;}
+  // Hauptlager automatisch erstellen falls noch nicht vorhanden
+  const mainExists=lagerOrte.find(o=>o.isMain);
+  if(!mainExists&&lagerOrte.length===0){
+    await set(push(ref(db,'lagerOrte')),{name:'Hauptlager',isMain:true});
+  }
+  await set(push(ref(db,'lagerOrte')),{name,isMain:false});
+  closeModal('ort-modal');showToast('Lagerort erstellt ✓');
+};
+
+// Umbuchung: Hauptlager → Sekundärlager
+window.openUmbuchModal=(matId,ortId)=>{
+  const mat=lagerMat.find(x=>x.id===matId);
+  const ort=lagerOrte.find(x=>x.id===ortId);
+  const mainOrt=getMainOrt();
+  const hauptBestand=getBestand(matId,mainOrt.id);
+  const aktBestand=getBestand(matId,ortId);
+  document.getElementById('umbuch-mat-id').value=matId;
+  document.getElementById('umbuch-ort-id').value=ortId;
+  document.getElementById('umbuch-info').innerHTML=
+    `<div style="font-weight:600;margin-bottom:6px">${mat?.name||'Material'}</div>
+    <div style="display:flex;gap:16px">
+      <span>🏠 Hauptlager: <strong>${hauptBestand} ${mat?.unit||'Stk'}</strong></span>
+      <span>→ ${ort?.name||'Lagerort'}: <strong>${aktBestand} ${mat?.unit||'Stk'}</strong></span>
+    </div>`;
+  document.getElementById('umbuch-qty').value=1;
+  document.getElementById('umbuch-modal').classList.add('open');
+};
+window.doUmbuchung=async()=>{
+  const matId=document.getElementById('umbuch-mat-id').value;
+  const ortId=document.getElementById('umbuch-ort-id').value;
+  const qty=parseInt(document.getElementById('umbuch-qty').value)||0;
+  if(qty<=0){showToast('Bitte Menge eingeben');return;}
+  const mainOrt=getMainOrt();
+  const hauptBestand=getBestand(matId,mainOrt.id);
+  if(qty>hauptBestand){showToast(`Nur ${hauptBestand} im Hauptlager verfügbar`);return;}
+  const aktBestand=getBestand(matId,ortId);
+  await set(ref(db,'lagerBestand/'+matId+'_'+mainOrt.id),hauptBestand-qty);
+  await set(ref(db,'lagerBestand/'+matId+'_'+ortId),aktBestand+qty);
+  closeModal('umbuch-modal');
+  showToast(`${qty} ${lagerMat.find(x=>x.id===matId)?.unit||'Stk'} eingelagert ✓`);
+};
+
+// Eingang Hauptlager (Nachbestellung)
+window.openZubuchModal=matId=>{
+  const mat=lagerMat.find(x=>x.id===matId);
+  const mainOrt=getMainOrt();
+  const aktBestand=getBestand(matId,mainOrt.id);
+  document.getElementById('zubuch-mat-id').value=matId;
+  document.getElementById('zubuch-info').innerHTML=
+    `<div style="font-weight:600;margin-bottom:4px">${mat?.name||'Material'}</div>
+    <div>Aktueller Bestand Hauptlager: <strong>${aktBestand} ${mat?.unit||'Stk'}</strong></div>`;
+  document.getElementById('zubuch-qty').value=1;
+  document.getElementById('zubuch-modal').classList.add('open');
+};
+window.doZubuchung=async()=>{
+  const matId=document.getElementById('zubuch-mat-id').value;
+  const qty=parseInt(document.getElementById('zubuch-qty').value)||0;
+  if(qty<=0){showToast('Bitte Menge eingeben');return;}
+  const mainOrt=getMainOrt();
+  const aktBestand=getBestand(matId,mainOrt.id);
+  await set(ref(db,'lagerBestand/'+matId+'_'+mainOrt.id),aktBestand+qty);
+  closeModal('zubuch-modal');
+  showToast(`${qty} eingebucht ✓`);
+};
+
+// Manuell +/- für einzelne Orte
+window.adjustBestand=async(matId,ortId,delta)=>{
+  const current=getBestand(matId,ortId);
+  const newQty=Math.max(0,current+delta);
+  await set(ref(db,'lagerBestand/'+matId+'_'+ortId),newQty);
+};
+
+// Hauptlager initialisieren wenn noch nicht vorhanden
+async function initHauptlager(){
+  const snap=await get(ref(db,'lagerOrte'));
+  if(!snap.exists()){
+    await set(push(ref(db,'lagerOrte')),{name:'Hauptlager',isMain:true});
+  } else {
+    const orte=Object.values(snap.val());
+    if(!orte.find(o=>o.isMain)){
+      await set(push(ref(db,'lagerOrte')),{name:'Hauptlager',isMain:true});
+    }
+  }
+}
+initHauptlager();
+
+// ── UMSATZ ÜBERSICHT ──
+function renderUmsatz(){
+  const now=new Date();
+  const panel=document.getElementById('umsatz-panel');
+  const selYear=panel.dataset.year||now.getFullYear();
+  const selMonth=panel.dataset.month!==undefined?parseInt(panel.dataset.month):-1; // -1 = ganzes Jahr
+  const monthNames=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+  // Filter orders
+  const filtered=orders.filter(o=>{
+    const d=new Date(o.date);
+    if(d.getFullYear()!==parseInt(selYear)) return false;
+    if(selMonth>=0&&d.getMonth()!==selMonth) return false;
+    return true;
+  });
+
+  const totalUmsatz=filtered.reduce((s,o)=>s+(o.total||0),0);
+  const totalAuftraege=filtered.length;
+  const mitUmsatz=filtered.filter(o=>o.total>0).length;
+
+  // Monats-Chart Daten
+  const monatsData=Array(12).fill(0);
+  orders.filter(o=>new Date(o.date).getFullYear()===parseInt(selYear)).forEach(o=>{
+    monatsData[new Date(o.date).getMonth()]+=(o.total||0);
+  });
+  const maxVal=Math.max(...monatsData,1);
+
+  // Auftrags-Liste
+  const rows=filtered.filter(o=>o.total>0).sort((a,b)=>new Date(b.date)-new Date(a.date))
+    .map(o=>`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:7px 6px;font-size:12px">${o.date}</td>
+      <td style="padding:7px 6px;font-size:12px;font-weight:500">${o.title}</td>
+      <td style="padding:7px 6px;font-size:12px;font-family:DM Mono,monospace;text-align:right;color:var(--teal)">CHF ${(o.total||0).toFixed(2)}</td>
+    </tr>`).join('');
+
+  panel.innerHTML=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <select style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--rs);color:var(--text);padding:9px 12px;font-family:DM Sans,sans-serif;font-size:13px;outline:none" onchange="setUmsatzFilter('month',this.value)">
+        <option value="-1" ${selMonth<0?'selected':''}>Ganzes Jahr</option>
+        ${monthNames.map((m,i)=>`<option value="${i}" ${selMonth===i?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <select style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--rs);color:var(--text);padding:9px 12px;font-family:DM Sans,sans-serif;font-size:13px;outline:none" onchange="setUmsatzFilter('year',this.value)">
+        ${[now.getFullYear(),now.getFullYear()-1,now.getFullYear()-2].map(y=>`<option value="${y}" ${parseInt(selYear)===y?'selected':''}>${y}</option>`).join('')}
+      </select>
+    </div>
+
+    <!-- KPI Karten -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Umsatz</div>
+        <div style="font-size:18px;font-weight:700;color:var(--teal)">CHF ${totalUmsatz.toFixed(0)}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Aufträge</div>
+        <div style="font-size:18px;font-weight:700;color:var(--accent)">${totalAuftraege}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Ø Auftrag</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text)">${mitUmsatz>0?'CHF '+(totalUmsatz/mitUmsatz).toFixed(0):'—'}</div>
+      </div>
+    </div>
+
+    <!-- Monats-Balken -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Monatsverlauf ${selYear}</div>
+      <div style="display:flex;gap:4px;align-items:flex-end;height:80px">
+        ${monatsData.map((v,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div style="width:100%;background:${selMonth===i?'var(--teal)':'var(--accent)'};border-radius:3px 3px 0 0;height:${Math.max(4,Math.round((v/maxVal)*72))}px;cursor:pointer;opacity:${selMonth<0||selMonth===i?1:0.4}" onclick="setUmsatzFilter('month','${i}')"></div>
+          <div style="font-size:8px;color:var(--muted)">${monthNames[i].slice(0,3)}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Auftrags-Liste -->
+    ${rows?`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden">
+      <div style="padding:10px 12px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Aufträge mit Umsatz</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:2px solid var(--border)">
+          <th style="padding:7px 6px;font-size:11px;color:var(--muted);text-align:left">Datum</th>
+          <th style="padding:7px 6px;font-size:11px;color:var(--muted);text-align:left">Auftrag</th>
+          <th style="padding:7px 6px;font-size:11px;color:var(--muted);text-align:right">Betrag</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`:'<div style="text-align:center;padding:24px;color:var(--muted)">Keine Aufträge mit Umsatz in diesem Zeitraum</div>'}
+    <button class="btn btn-primary" onclick="exportUmsatzPDF()" style="width:100%;margin-top:14px">📄 Als PDF exportieren</button>
+  `;
+}
+
+window.setUmsatzFilter=(type,val)=>{
+  const panel=document.getElementById('umsatz-panel');
+  if(type==='month') panel.dataset.month=val;
+  else panel.dataset.year=val;
+  renderUmsatz();
+};
+
+window.exportUmsatzPDF=()=>{
+  const panel=document.getElementById('umsatz-panel');
+  const year=panel.dataset.year||new Date().getFullYear();
+  const month=panel.dataset.month!==undefined?parseInt(panel.dataset.month):-1;
+  const monthNames=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const title=month>=0?monthNames[month]+' '+year:'Jahr '+year;
+  const inner=panel.querySelector('table')?panel.querySelector('table').outerHTML:'';
+  const kpis=panel.querySelectorAll('[style*="text-align:center"]');
+  let kpiHtml='';
+  kpis.forEach(k=>{kpiHtml+=k.outerHTML;});
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Umsatz ${title}</title>
+    <style>body{font-family:Arial,sans-serif;padding:32px;color:#111}h1{font-size:20px}h2{font-size:14px;color:#666;font-weight:normal;margin-bottom:24px}
+    table{width:100%;border-collapse:collapse}th{font-size:11px;color:#666;text-align:left;padding:6px;border-bottom:2px solid #ddd}td{font-size:13px;padding:7px 6px;border-bottom:1px solid #eee}
+    .kpi-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}.kpi{border:1px solid #ddd;border-radius:8px;padding:12px;text-align:center}
+    </style></head><body>
+    <h1>Umsatzübersicht – pG Plan</h1><h2>${title}</h2>
+    ${inner}
+    <script>window.onload=()=>window.print()<\/script></body></html>`);
+  win.document.close();
 };
 
 window.toggleEdit=async(id,currentlyCanEdit)=>{
@@ -1110,7 +1521,22 @@ function renderPchecks(){
 window.saveOrder=async()=>{
   const title=document.getElementById('f-title').value.trim(),date=document.getElementById('f-date').value;
   if(!title||!date){showToast('Bitte Titel und Datum eingeben');return;}
-  const o={title,date,timeStart:document.getElementById('f-time-start').value,timeEnd:document.getElementById('f-time-end').value,time:document.getElementById('f-time-start').value,color:orderColor,address:document.getElementById('f-address').value.trim(),notes:document.getElementById('f-notes').value.trim(),persons:[...selPersons]};
+  const sh=document.getElementById('f-time-start-h').value;
+  const sm=document.getElementById('f-time-start-m').value;
+  const eh=document.getElementById('f-time-end-h').value;
+  const em=document.getElementById('f-time-end-m').value;
+  const timeStart=sh&&sm?sh+':'+sm:'';
+  const timeEnd=eh&&em?eh+':'+em:'';
+  const dateEnd=document.getElementById('f-date-end').value||'';
+  const cleanLeist=leistungen.map(({id,...rest})=>rest);
+  const total=cleanLeist.reduce((s,l)=>s+(l.qty||0)*(l.price||0),0);
+  const o={title,date,dateEnd,timeStart,timeEnd,time:timeStart,color:orderColor,
+    address:document.getElementById('f-address').value.trim(),
+    notes:document.getElementById('f-notes').value.trim(),
+    persons:[...selPersons],
+    leistungen:cleanLeist,
+    total:parseFloat(total.toFixed(2))
+  };
   if(editId)await set(ref(db,'orders/'+editId),{...o,id:editId});else await set(push(ref(db,'orders')),o);
   closeModal('add-modal');showToast('Auftrag gespeichert ✓');
 };
@@ -1137,6 +1563,33 @@ window.openDetail=id=>{
   document.getElementById('detail-modal').classList.add('open');
 };
 window.editFromDetail=()=>{const id=document.getElementById('detail-modal').dataset.oid;closeModal('detail-modal');window.openAddModal('',id);};
+window.copyOrder=()=>{
+  const id=document.getElementById('detail-modal').dataset.oid;
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  closeModal('detail-modal');
+  // Open add modal pre-filled with copy data
+  editId=null;selPersons=o.persons?[...o.persons]:[];
+  leistungen=o.leistungen?o.leistungen.map(l=>({...l,id:'l'+Date.now()+Math.random().toString(36).slice(2,6)})):[];
+  document.getElementById('modal-title').textContent='Auftrag kopieren';
+  document.getElementById('delete-btn').style.display='none';
+  document.getElementById('f-title').value=o.title+' (Kopie)';
+  document.getElementById('f-date').value=o.date;
+  document.getElementById('f-date-end').value=o.dateEnd||'';
+  if(o.dateEnd) window.setDateMode('range'); else window.setDateMode('single');
+  const[sh,sm]=strToHM(o.timeStart||o.time||'');
+  const[eh,em]=strToHM(o.timeEnd||'');
+  document.getElementById('f-time-start-h').value=sh;
+  document.getElementById('f-time-start-m').value=sm;
+  document.getElementById('f-time-end-h').value=eh;
+  document.getElementById('f-time-end-m').value=em;
+  document.getElementById('f-address').value=o.address||'';
+  document.getElementById('f-notes').value=o.notes||'';
+  orderColor=o.color||'#6c5ce7';
+  buildPalette('order-palette','order-color-native','order-color-hex','order-color-preview',orderColor,c=>orderColor=c);
+  renderLeistungen();
+  renderPchecks();
+  document.getElementById('add-modal').classList.add('open');
+};
 
 window.exportToCalendar=()=>{
   const o=detailOrder;if(!o)return;
