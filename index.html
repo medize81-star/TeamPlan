@@ -323,9 +323,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
     <!-- LEISTUNGSPOSITIONEN / UMSATZ -->
     <div class="fg">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
         <label class="flabel" style="margin:0">💶 Leistungspositionen</label>
-        <button type="button" onclick="addLeistung()" style="background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:20px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">+ Position</button>
+        <div style="display:flex;gap:6px">
+          <button type="button" onclick="openPreislisteModal()" style="background:transparent;border:1px solid var(--teal);color:var(--teal);border-radius:20px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">📋 Aus Preisliste</button>
+          <button type="button" onclick="addLeistung()" style="background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:20px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">+ Manuell</button>
+        </div>
       </div>
       <div id="leistung-list" style="display:flex;flex-direction:column;gap:6px"></div>
       <div style="display:flex;justify-content:flex-end;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
@@ -401,6 +404,40 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- PREISLISTE AUSWAHL MODAL -->
+<div class="modal-overlay" id="preisliste-modal">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="mtitle" style="margin:0">Aus Preisliste wählen</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('preisliste-modal')">✕</button>
+    </div>
+    <div id="preisliste-items" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:50vh;overflow-y:auto"></div>
+    <button class="btn btn-ghost" style="width:100%" onclick="closeModal('preisliste-modal')">Fertig</button>
+  </div>
+</div>
+
+<!-- PREISLISTE VERWALTUNG MODAL -->
+<div class="modal-overlay" id="preisliste-mgmt-modal">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="mtitle" style="margin:0">Preisliste verwalten</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('preisliste-mgmt-modal')">✕</button>
+    </div>
+    <div id="preisliste-mgmt-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:40vh;overflow-y:auto"></div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:14px;margin-bottom:12px">
+      <div class="flabel">Neue Position</div>
+      <div style="display:grid;grid-template-columns:1fr 80px 80px;gap:8px;margin-top:6px">
+        <input class="finput" id="pl-desc" placeholder="Bezeichnung z.B. Glasscheibe" style="font-size:13px;padding:9px 10px">
+        <input class="finput" id="pl-unit" placeholder="Einheit" style="font-size:13px;padding:9px 10px">
+        <input class="finput" type="number" id="pl-price" placeholder="CHF" min="0" step="0.01" style="font-size:13px;padding:9px 10px">
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:10px" onclick="savePreislisteItem()">+ Hinzufügen</button>
+    </div>
+  </div>
+</div>
 
 <!-- STUNDEN MODAL -->
 <div class="modal-overlay" id="hours-modal">
@@ -1425,8 +1462,91 @@ function renderUmsatz(){
       </table>
     </div>`:'<div style="text-align:center;padding:24px;color:var(--muted)">Keine Aufträge mit Umsatz in diesem Zeitraum</div>'}
     <button class="btn btn-primary" onclick="exportUmsatzPDF()" style="width:100%;margin-top:14px">📄 Als PDF exportieren</button>
+    <button class="btn btn-ghost" onclick="openPreislisteMgmt()" style="width:100%;margin-top:8px">📋 Preisliste verwalten</button>
   `;
 }
+
+// ── PREISLISTE ──
+let preislisteItems=[];
+onValue(ref(db,'preisliste'),s=>{
+  preislisteItems=[];
+  if(s.exists()) Object.keys(s.val()).forEach(k=>preislisteItems.push({id:k,...s.val()[k]}));
+});
+
+window.openPreislisteMgmt=()=>{
+  renderPreislisteMgmt();
+  document.getElementById('preisliste-mgmt-modal').classList.add('open');
+};
+
+function renderPreislisteMgmt(){
+  const wrap=document.getElementById('preisliste-mgmt-list');
+  if(!wrap) return;
+  if(preislisteItems.length===0){
+    wrap.innerHTML='<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">Noch keine Positionen — unten hinzufügen</div>';
+    return;
+  }
+  wrap.innerHTML=preislisteItems.map(p=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px">
+      <div>
+        <div style="font-size:14px;font-weight:500">${p.desc}</div>
+        <div style="font-size:12px;color:var(--muted)">${p.unit||'Stk'} · CHF ${parseFloat(p.price||0).toFixed(2)}</div>
+      </div>
+      <button onclick="deletePreislisteItem('${p.id}')" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:18px;padding:0 4px">×</button>
+    </div>`).join('');
+}
+
+window.savePreislisteItem=async()=>{
+  const desc=document.getElementById('pl-desc').value.trim();
+  const unit=document.getElementById('pl-unit').value.trim()||'Stk';
+  const price=parseFloat(document.getElementById('pl-price').value)||0;
+  if(!desc){showToast('Bitte Bezeichnung eingeben');return;}
+  await set(push(ref(db,'preisliste')),{desc,unit,price});
+  document.getElementById('pl-desc').value='';
+  document.getElementById('pl-unit').value='';
+  document.getElementById('pl-price').value='';
+  showToast('Position hinzugefügt ✓');
+  renderPreislisteMgmt();
+};
+
+window.deletePreislisteItem=async(id)=>{
+  await remove(ref(db,'preisliste/'+id));
+  showToast('Gelöscht');
+  renderPreislisteMgmt();
+};
+
+window.openPreislisteModal=()=>{
+  const wrap=document.getElementById('preisliste-items');
+  if(!wrap) return;
+  if(preislisteItems.length===0){
+    wrap.innerHTML=`<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">
+      Keine Preisliste vorhanden.<br>
+      <button onclick="closeModal('preisliste-modal');setView('umsatz');" style="margin-top:10px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:DM Sans,sans-serif">→ Preisliste erstellen</button>
+    </div>`;
+  } else {
+    wrap.innerHTML=preislisteItems.map(p=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;cursor:pointer" onclick="addFromPreisliste('${p.id}')">
+        <div>
+          <div style="font-size:14px;font-weight:500">${p.desc}</div>
+          <div style="font-size:12px;color:var(--muted)">${p.unit||'Stk'} · CHF ${parseFloat(p.price||0).toFixed(2)}</div>
+        </div>
+        <div style="background:var(--accent);color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">+ Wählen</div>
+      </div>`).join('');
+  }
+  document.getElementById('preisliste-modal').classList.add('open');
+};
+
+window.addFromPreisliste=(id)=>{
+  const p=preislisteItems.find(x=>x.id===id);
+  if(!p) return;
+  leistungen.push({
+    id:'l'+Date.now()+Math.random().toString(36).slice(2,5),
+    qty:1,
+    desc:p.desc,
+    price:p.price||0
+  });
+  renderLeistungen();
+  showToast(p.desc+' hinzugefügt ✓');
+};
 
 window.setUmsatzFilter=(type,val)=>{
   const panel=document.getElementById('umsatz-panel');
