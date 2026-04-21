@@ -511,7 +511,16 @@ const LOGO="iVBORw0KGgoAAAANSUhEUgAAAlMAAAGqCAYAAAAvNMGkAAAZyklEQVR4nO3dedRtd0Hf
 document.getElementById('login-logo').src='data:image/png;base64,'+LOGO;
 document.getElementById('app-logo').src='data:image/png;base64,'+LOGO;
 
-let persons=[],orders=[],me=null,view='month',curDate=new Date();
+// Zeitzone Zürich
+const TZ = 'Europe/Zurich';
+function nowZH(){ return new Date(new Date().toLocaleString('en-US',{timeZone:TZ})); }
+function dateStrZH(dt){ 
+  const d=new Date(dt.toLocaleString('en-US',{timeZone:TZ}));
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function todayStrZH(){ return dateStrZH(new Date()); }
+
+let persons=[],orders=[],me=null,view='month',curDate=nowZH();
 let editId=null,selPersons=[],detailOrder=null,pinBuffer='';
 let orderColor='#6c5ce7', userColor='#6c5ce7';
 
@@ -655,6 +664,14 @@ window.setView=v=>{
 
 function renderAll(){if(view==='month'||view==='week')renderLegend();if(view==='month')renderMonth();else if(view==='week')renderWeek();else if(view==='admin')renderAdmin();else if(view==='lager')renderLager();else if(view==='umsatz')renderUmsatz();}
 
+// Timezone-safe: gibt YYYY-MM-DD in lokaler Zeit zurück
+function dateStr(dt){
+  const y=dt.getFullYear();
+  const m=String(dt.getMonth()+1).padStart(2,'0');
+  const d=String(dt.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+d;
+}
+
 function renderLegend(){
   const list=me.isAdmin?persons:persons.filter(p=>p.id===me.id);
   document.getElementById('legend').innerHTML=list.map(p=>`<div class="legend-item"><div class="legend-dot" style="background:${p.color}"></div>${p.name}</div>`).join('');
@@ -672,9 +689,9 @@ function fmtTime(o){
 
 function renderMonth(){
   const y=curDate.getFullYear(),m=curDate.getMonth();
-  document.getElementById('nav-label').textContent=new Date(y,m,1).toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+  document.getElementById('nav-label').textContent=new Date(y,m,1).toLocaleDateString('de-CH',{month:'long',year:'numeric',timeZone:TZ});
   let h='<div class="month-grid">'+['Mo','Di','Mi','Do','Fr','Sa','So'].map(d=>`<div class="mh">${d}</div>`).join('');
-  const first=new Date(y,m,1),dow=(first.getDay()+6)%7,dim=new Date(y,m+1,0).getDate(),td=new Date();
+  const first=new Date(y,m,1),dow=(first.getDay()+6)%7,dim=new Date(y,m+1,0).getDate(),td=nowZH();
   for(let i=0;i<dow;i++)h+=mday(new Date(y,m,1-dow+i),true);
   for(let d=1;d<=dim;d++)h+=mday(new Date(y,m,d),false,new Date(y,m,d).toDateString()===td.toDateString());
   const rem=(dow+dim)%7===0?0:7-(dow+dim)%7;
@@ -682,7 +699,7 @@ function renderMonth(){
   document.getElementById('cal-wrap').innerHTML=h+'</div>';
 }
 function mday(dt,other,isToday=false){
-  const ds=dt.toISOString().slice(0,10),ords=dayOrders(ds);
+  const ds=dateStr(dt),ords=dayOrders(ds);
   let chips=ords.slice(0,3).map(o=>{
     const t=o.timeStart||o.time?((o.timeStart||o.time)+' '):'';
     const multi=o.dateEnd&&o.dateEnd!==o.date?'↔ ':'';
@@ -703,16 +720,16 @@ window.jumpToWeek=(ds,e)=>{
 // ── WOCHE MIT DRAG & RESIZE ──
 const HOUR_H=56, START_H=6;
 function renderWeek(){
-  const mon=monday(curDate),sun=new Date(mon);sun.setDate(sun.getDate()+6);
-  document.getElementById('nav-label').textContent=mon.toLocaleDateString('de-DE',{day:'2-digit',month:'short'})+' – '+sun.toLocaleDateString('de-DE',{day:'2-digit',month:'short'});
-  const td=new Date(),days=Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(d.getDate()+i);return d;});
+  const mon=monday(curDate),sun=new Date(mon);sun.setDate(sun.getDate()+6);sun.setHours(23,59,59,999);
+  document.getElementById('nav-label').textContent=mon.toLocaleDateString('de-CH',{day:'2-digit',month:'short',timeZone:TZ})+' – '+sun.toLocaleDateString('de-CH',{day:'2-digit',month:'short',timeZone:TZ});
+  const td=nowZH(),days=Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(d.getDate()+i);return d;});
   let h='<div class="week-grid"><div></div>';
-  ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach((n,i)=>{const iT=days[i].toDateString()===td.toDateString();h+=`<div class="wdh${iT?' today':''}"><div class="wdn">${n}</div><div class="wdd">${days[i].getDate()}</div></div>`;});
+  ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach((n,i)=>{const iT=dateStrZH(days[i])===todayStrZH();h+=`<div class="wdh${iT?' today':''}"><div class="wdn">${n}</div><div class="wdd">${days[i].getDate()}</div></div>`;});
   h+='<div class="timecol">';
   for(let hr=START_H;hr<22;hr++)h+=`<div class="tslot"><span class="tlabel">${String(hr).padStart(2,'0')}</span></div>`;
   h+='</div>';
   days.forEach((d)=>{
-    const ds=d.toISOString().slice(0,10),ords=dayOrders(ds);
+    const ds=dateStr(d),ords=dayOrders(ds);
     h+=`<div class="wcol" data-date="${ds}">`;
     for(let hr=START_H;hr<22;hr++)h+='<div class="whl"></div>';
     ords.forEach(o=>{
@@ -946,7 +963,7 @@ window.openHoursModal=id=>{
   document.getElementById('hours-modal-title').textContent=p.name+' – Stunden';
   document.getElementById('hours-modal').dataset.uid=id;
   // Aktuellen Monat + Jahr vorauswählen
-  const now=new Date();
+  const now=nowZH();
   document.getElementById('hours-month').value=now.getMonth();
   // Jahr-Dropdown füllen
   const ySel=document.getElementById('hours-year');
@@ -962,7 +979,7 @@ window.renderHoursModal=()=>{
   const uid=document.getElementById('hours-modal').dataset.uid;
   const period=document.getElementById('hours-period').value;
   const month=parseInt(document.getElementById('hours-month').value);
-  const year=parseInt(document.getElementById('hours-year').value||new Date().getFullYear());
+  const year=parseInt(document.getElementById('hours-year').value||nowZH().getFullYear());
   const monthSel=document.getElementById('hours-month');
   monthSel.style.display=period==='week'?'none':'block';
 
@@ -974,7 +991,7 @@ window.renderHoursModal=()=>{
       return d.getFullYear()===year&&d.getMonth()===month;
     });
   } else {
-    const now=new Date();
+    const now=nowZH();
     const mon=new Date(now);mon.setDate(now.getDate()-(now.getDay()+6)%7);mon.setHours(0,0,0,0);
     const sun=new Date(mon);sun.setDate(sun.getDate()+6);sun.setHours(23,59,59,999);
     filtered=orders.filter(o=>{
@@ -1488,7 +1505,12 @@ window.removePerson=async id=>{
 };
 
 function dayOrders(ds){return orders.filter(o=>o.date===ds&&(me.isAdmin||o.persons?.includes(me.id)));}
-function monday(d){const dt=new Date(d);dt.setDate(dt.getDate()-(dt.getDay()+6)%7);return dt;}
+function monday(d){
+  // Wenn d ein String ist (YYYY-MM-DD), local parsen
+  const dt=typeof d==='string'?new Date(d+'T00:00:00'):new Date(d);
+  dt.setDate(dt.getDate()-(dt.getDay()+6)%7);
+  return dt;
+}
 
 // ── LEISTUNGEN STATE ──
 let leistungen=[];
